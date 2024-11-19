@@ -1,0 +1,1 @@
+SPDX-License-Identifier: BSL-1.1 mellow-lz-cross-chain
