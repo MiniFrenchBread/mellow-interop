@@ -1,8 +1,6 @@
-@openzeppelin/contracts/=lib/layerzero-v2/packages/layerzero-v2/evm/oapp/node_modules/@openzeppelin/contracts/
-ds-test/=lib/layerzero-v2/lib/forge-std/lib/ds-test/src/
-erc4626-tests/=lib/openzeppelin-contracts/lib/erc4626-tests/
-forge-std/=lib/forge-std/src/
-halmos-cheatcodes/=lib/openzeppelin-contracts/lib/halmos-cheatcodes/src/
-layerzero-v2/=lib/layerzero-v2/
+@layerzero-v2=lib/layerzero-v2/packages/layerzero-v2/
+@stargate-v2=lib/stargate-v2/packages/stg-evm-v2/src/
 @layerzerolabs/lz-evm-protocol-v2/contracts/=lib/layerzero-v2/packages/layerzero-v2/evm/protocol/contracts/
-@layerzero-v2=lib/layerzero-v2/packages/layerzero-v2/evm/oapp/contracts
+@layerzerolabs/lz-evm-oapp-v2/contracts=lib/layerzero-v2/packages/layerzero-v2/evm/oapp/contracts/
+@layerzerolabs/lz-evm-messagelib-v2=lib/layerzero-v2/packages/layerzero-v2/evm/messagelib/
+solidity-bytes-utils/contracts/=lib/solidity-bytes-utils/contracts/

@@ -4,3 +4,12 @@
 [submodule "lib/layerzero-v2"]
 	path = lib/layerzero-v2
 	url = https://github.com/LayerZero-Labs/LayerZero-v2
+[submodule "lib/stargate-v2"]
+	path = lib/stargate-v2
+	url = git@github.com:stargate-protocol/stargate-v2.git
+[submodule "lib/openzeppelin-contracts"]
+	path = lib/openzeppelin-contracts
+	url = git@github.com:OpenZeppelin/openzeppelin-contracts.git
+[submodule "lib/solidity-bytes-utils"]
+	path = lib/solidity-bytes-utils
+	url = git@github.com:GNSPS/solidity-bytes-utils.git
