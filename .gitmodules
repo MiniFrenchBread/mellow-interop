@@ -7,3 +7,6 @@
 [submodule "lib/devtools"]
 	path = lib/devtools
 	url = https://github.com/layerzero-labs/devtools
+[submodule "lib/openzeppelin-contracts"]
+	path = lib/openzeppelin-contracts
+	url = https://github.com/openzeppelin/openzeppelin-contracts
