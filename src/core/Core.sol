@@ -43,6 +43,6 @@ abstract contract Core is Ownable {
     function _receiveMessage(uint256 value, bytes memory data) internal virtual;
 
     function _sendMessage(uint256 value, bytes memory data) internal {
-        adapter.send{value: value}(pairedChainId, pairedCoreAdapterAddress, value, data);
+        adapter.send{value: value}(pairedChainId, pairedCoreAdapterAddress, data);
     }
 }

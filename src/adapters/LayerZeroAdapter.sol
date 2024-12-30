@@ -22,7 +22,7 @@ contract LayerZeroAdapter is OApp, OAppOptionsType3, IAdapter {
         address refundAddress;
     }
 
-    function send(bytes32 chainId, bytes32 sender, uint256 value, bytes calldata data) external payable override {
+    function send(bytes32 chainId, bytes32 sender, bytes calldata data) external payable override {
         // _lzSend(
         // uint32 _dstEid,
         // bytes memory _message,

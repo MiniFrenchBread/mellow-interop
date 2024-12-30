@@ -29,6 +29,7 @@ contract SourceCore is Core {
 
     IERC20 public immutable underlyingAsset;
 
+    // burner contract for slashing events
     address public burner;
 
     uint256 public depositBatches;
@@ -54,6 +55,7 @@ contract SourceCore is Core {
         burner = burner_;
     }
 
+    // TODO: `quote` from LZ?
     function setValues(
         uint256 minDepositValue_,
         uint256 minPushDepositBatchValue_,
