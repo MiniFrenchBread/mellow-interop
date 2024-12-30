@@ -2,30 +2,149 @@
 
 pragma solidity 0.8.25;
 
-import "../adapters/CrosschainAdapter.sol";
+import "./Core.sol";
+import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
+import "@openzeppelin/contracts/utils/math/Math.sol";
 
-contract SourceCore is CrosschainAdapter {
-    constructor(address owner_) Ownable(owner_) {}
+contract SourceCore is Core {
+    using SafeERC20 for IERC20;
 
-    function _receiveMessage(bytes32 chainId, bytes32 sender, uint256 value, bytes calldata data)
-        internal
-        virtual
-        override
-    {}
+    enum Status {
+        CLOSED, // no deposits allowed yet
+        OPEN, // deposits allowed
+        PENDING, // no deposits allowed, waiting for processing
+        COMPLETED // deposits processed, waiting for claims
 
-    function _sendMessage(bytes32 chainId, bytes32 receiver, uint256 value, bytes calldata data)
-        internal
-        virtual
-        override
-    {}
+    }
 
-    function deposit(uint256 assets, address receiver) external returns (uint256 batchId) {}
+    enum SourceMessageType {
+        DEPOSIT,
+        WITHDRAWAL,
+        CLAIM
+    }
 
-    function pushDepositBatch(uint256 batchId, uint256 value) external payable {}
+    enum TargetMessageType {
+        DEPOSIT,
+        WITHDRAWAL,
+        DEPOSIT_SUCCESS,
+        WITHDRAWAL_SUCCESS
+    }
 
-    function _completeDepositBatch(uint256 batchId, uint256 value) internal {}
+    struct Request {
+        uint256 value;
+        uint256 requested;
+        uint256 processed;
+        uint256 claimed;
+        mapping(address account => uint256) accountRequest;
+        mapping(address account => uint256) accountClaimed;
+        Status status;
+    }
 
-    function claimDeposits(uint256[] calldata batchIds, uint256 recipient) external returns (uint256 shares) {}
+    IERC20 public immutable underlyingAsset;
+
+    uint256 public depositBatches;
+    uint256 public minDepositValue;
+    uint256 public minPushDepositsValue;
+    uint256 public minWithdrawalValue;
+    uint256 public minPushWithdrawalsValue;
+
+    mapping(uint256 batchId => Request) private _deposits;
+    mapping(uint256 batchId => Request) private _withdrawals;
+
+    mapping(uint256 messageId => bool) public processedMessages;
+
+    constructor(address owner_, address underlying, string memory name_, string memory symbol_)
+        Core(owner_, name_, symbol_)
+    {
+        underlyingAsset = IERC20(underlying);
+    }
+
+    function _receiveMessage(uint256, /* value */ bytes memory data) internal virtual override {
+        (SourceMessageType messageType, uint256 messageId, uint256 batchId, uint256 amount) =
+            abi.decode(data, (SourceMessageType, uint256, uint256, uint256));
+        if (messageType == SourceMessageType.DEPOSIT) {
+            Request storage deposit_ = _deposits[batchId];
+            require(deposit_.status == Status.PENDING, "SourceCore: INVALID_STATUS");
+            deposit_.status = Status.COMPLETED;
+            deposit_.processed = amount;
+            processedMessages[messageId] = true;
+        } else if (messageType == SourceMessageType.WITHDRAWAL) {
+            Request storage withdrawal_ = _withdrawals[batchId];
+            require(withdrawal_.status == Status.PENDING, "SourceCore: INVALID_STATUS");
+            withdrawal_.status = Status.COMPLETED;
+            // We probably won't have such a `COMPLETED` status for withdrawal at all due to d
+            withdrawal_.processed = amount;
+            asset.burn(address(this), amount);
+            processedMessages[messageId] = true;
+        } else if (messageType == SourceMessageType.CLAIM) {} else {
+            revert("SourceCore: INVALID_MESSAGE_TYPE");
+        }
+    }
+
+    function _sendMessage(uint256 value, bytes memory data) internal virtual override {
+        IAdapter(adapter).send{value: value}(pairedChainId, pairedCoreAdapterAddress, value, data);
+    }
+
+    function deposit(uint256 assets, address receiver, uint256 value) external payable returns (uint256 batchId) {
+        require(value >= minDepositValue, "SourceCore: INVALID_VALUE");
+        underlyingAsset.safeTransferFrom(msg.sender, address(this), assets);
+
+        batchId = depositBatches;
+        Request storage deposit_ = _deposits[batchId];
+        if (deposit_.status == Status.CLOSED) {
+            deposit_.status = Status.OPEN;
+            deposit_.requested = assets;
+            deposit_.accountRequest[receiver] = assets;
+            deposit_.value += value;
+        } else if (deposit_.status == Status.OPEN) {
+            deposit_.requested += assets;
+            deposit_.accountRequest[receiver] += assets;
+            deposit_.value += value;
+        } else {
+            batchId++;
+            depositBatches = batchId;
+            deposit_ = _deposits[batchId];
+            deposit_.status = Status.OPEN;
+            deposit_.requested = assets;
+            deposit_.accountRequest[receiver] = assets;
+            deposit_.value = value;
+        }
+    }
+
+    function pushDepositBatch(uint256 batchId, uint256 value) external payable {
+        Request storage deposit_ = _deposits[batchId];
+        require(deposit_.status == Status.OPEN, "SourceCore: INVALID_STATUS");
+        require(deposit_.requested > 0, "SourceCore: INVALID_AMOUNT");
+        require(msg.value == value && value + deposit_.value >= minPushDepositsValue, "SourceCore: INVALID_VALUE");
+        depositBatches++;
+        deposit_.status = Status.PENDING;
+        _sendMessage(value, abi.encode(TargetMessageType.DEPOSIT, batchId, deposit_.requested));
+    }
+
+    function claimDeposits(uint256[] calldata batchIds, address recipient) external returns (uint256 shares) {
+        address sender = msg.sender;
+        for (uint256 i = 0; i < batchIds.length; i++) {
+            Request storage deposit_ = _deposits[batchIds[i]];
+            if (deposit_.status != Status.COMPLETED) {
+                continue;
+            }
+            uint256 accountRequest = deposit_.accountRequest[sender];
+            if (accountRequest == 0) {
+                continue;
+            }
+            uint256 due = Math.mulDiv(deposit_.processed, deposit_.requested, accountRequest);
+            uint256 claimed = deposit_.accountClaimed[sender];
+            if (claimed >= due) {
+                continue;
+            }
+            uint256 leftover = due - claimed;
+            shares += leftover;
+            deposit_.accountClaimed[sender] = due;
+        }
+        if (shares != 0) {
+            asset.mint(recipient, shares);
+        }
+    }
 
     function withdraw(address shares, address receiver) external returns (uint256 batchId) {}
 

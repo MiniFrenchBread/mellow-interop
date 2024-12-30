@@ -12,8 +12,6 @@ import "@openzeppelin/contracts/access/Ownable.sol";
 import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 import "@openzeppelin/contracts/utils/math/Math.sol";
 
-contract LayerZeroAdapter {
-// payable functions?...
-// how the hell we must support any payable functions here?
-// gas estimation, payable functcion e.t.c
+abstract contract LayerZeroAdapter is OApp, OAppOptionsType3 {
+// TODO: implement LZ logic here
 }
