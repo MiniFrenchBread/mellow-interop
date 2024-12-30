@@ -11,11 +11,10 @@ contract SourceCore is Core {
     using SafeERC20 for IERC20;
 
     enum Status {
-        CLOSED, // no deposits allowed yet
-        OPEN, // deposits allowed
-        PENDING, // no deposits allowed, waiting for processing
-        COMPLETED // deposits processed, waiting for claims
-
+        CLOSED,
+        OPEN,
+        PENDING,
+        COMPLETED
     }
 
     struct Request {
@@ -43,7 +42,7 @@ contract SourceCore is Core {
     mapping(uint256 batchId => Request) private _deposits;
     mapping(uint256 batchId => Request) private _redeems;
 
-    mapping(uint256 messageId => bool) public processedMessages;
+    mapping(uint256 messageId => bool) public isMessageReceived;
 
     constructor(address owner_, address underlying, string memory name_, string memory symbol_)
         Core(owner_, name_, symbol_)
@@ -70,7 +69,7 @@ contract SourceCore is Core {
     function _receiveMessage(uint256, /* value */ bytes memory data) internal virtual override {
         (MessageType messageType, uint256 messageId, uint256 batchId, uint256 assets, uint256 shares) =
             abi.decode(data, (MessageType, uint256, uint256, uint256, uint256));
-        processedMessages[messageId] = true;
+        isMessageReceived[messageId] = true;
         if (messageType == MessageType.DEPOSIT) {
             Request storage deposit_ = _deposits[batchId];
             require(deposit_.status == Status.PENDING, "SourceCore: INVALID_STATUS");
@@ -98,8 +97,8 @@ contract SourceCore is Core {
         }
     }
 
-    function deposit(uint256 assets, address receiver, uint256 value) external payable returns (uint256 batchId) {
-        require(value >= minDepositValue, "SourceCore: INVALID_VALUE");
+    function deposit(uint256 assets, address receiver) external payable returns (uint256 batchId) {
+        require(msg.value >= minDepositValue, "SourceCore: INVALID_VALUE");
         underlyingAsset.safeTransferFrom(msg.sender, address(this), assets);
 
         batchId = depositBatches;
@@ -108,11 +107,11 @@ contract SourceCore is Core {
             deposit_.status = Status.OPEN;
             deposit_.requested = assets;
             deposit_.accountRequest[receiver] = assets;
-            deposit_.value += value;
+            deposit_.value = msg.value;
         } else if (deposit_.status == Status.OPEN) {
             deposit_.requested += assets;
             deposit_.accountRequest[receiver] += assets;
-            deposit_.value += value;
+            deposit_.value += msg.value;
         } else {
             batchId++;
             depositBatches = batchId;
@@ -120,15 +119,15 @@ contract SourceCore is Core {
             deposit_.status = Status.OPEN;
             deposit_.requested = assets;
             deposit_.accountRequest[receiver] = assets;
-            deposit_.value = value;
+            deposit_.value = msg.value;
         }
     }
 
-    function pushDepositBatch(uint256 batchId, uint256 value) external payable {
+    function pushDepositBatch(uint256 batchId) external payable {
         Request storage deposit_ = _deposits[batchId];
         require(deposit_.status == Status.OPEN, "SourceCore: INVALID_STATUS");
         require(deposit_.requested > 0, "SourceCore: INVALID_AMOUNT");
-        uint256 depositValue = deposit_.value + value;
+        uint256 depositValue = deposit_.value + msg.value;
         require(depositValue >= minPushDepositBatchValue, "SourceCore: INVALID_VALUE");
         depositBatches++;
         deposit_.status = Status.PENDING;

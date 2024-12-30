@@ -21,13 +21,10 @@ contract RedeemClaimer {
         owner = owner_;
     }
 
-    function claim(
-        address multiVault,
-        uint256[] calldata subvaultIndices,
-        uint256[][] calldata indices,
-        uint256 maxAssets
-    ) external returns (uint256 assets) {
+    function claim(address multiVault, bytes calldata data) external returns (uint256 assets) {
         require(msg.sender == owner, "RedeemClaimer: forbidden");
+        (uint256[] memory subvaultIndices, uint256[][] memory indices, uint256 maxAssets) =
+            abi.decode(data, (uint256[], uint256[][], uint256));
         return IClaimer(claimer).multiAcceptAndClaim(multiVault, subvaultIndices, indices, owner, maxAssets);
     }
 }
