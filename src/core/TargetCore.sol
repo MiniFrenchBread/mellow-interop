@@ -13,7 +13,9 @@ abstract contract TargetCore is Core {
     address public immutable vault;
     address public immutable vaultClaimer;
 
-    mapping(uint256 batchId => address claimer) public claimers;
+    uint256 public messageId;
+    mapping(uint256 batchId => address) public claimers;
+    mapping(uint256 messageId => bytes) public sentMessageById;
 
     constructor(address owner_, address vault_, address claimer_, string memory name_, string memory symbol_)
         Core(owner_, name_, symbol_)
@@ -28,23 +30,33 @@ abstract contract TargetCore is Core {
         if (messageType == MessageType.DEPOSIT) {
             asset.mint(address(this), assets);
             IERC20(asset).safeIncreaseAllowance(vault, assets);
-            IERC4626(vault).deposit(assets, address(this));
-            _sendMessage(value, abi.encode(MessageType.DEPOSIT, batchId, assets));
+            shares = IERC4626(vault).deposit(assets, address(this));
+            uint256 messageId_ = messageId;
+            bytes memory message = abi.encode(MessageType.DEPOSIT, messageId_, batchId, assets, shares);
+            _sendMessage(value, message);
+            sentMessageById[messageId_] = message;
+            messageId = messageId_ + 1;
         } else if (messageType == MessageType.REDEEM) {
             RedeemClaimer claimer = new RedeemClaimer(vaultClaimer, address(this));
             claimers[batchId] = address(claimer);
             IERC4626(vault).redeem(shares, address(claimer), address(this));
-            _claim(batchId, value);
         } else {
             revert("TargetCore: INVALID_MESSAGE_TYPE");
         }
     }
 
-    function _claim(uint256 batchId, uint256 value) internal returns (uint256 assets) {
-        
-    }
-
-    function claim(uint256 batchId) external payable returns (uint256 assets) {
-        return _claim(batchId, msg.value);
+    function claim(uint256 batchId, uint256[] calldata subvaultIndices, uint256[][] calldata indices, uint256 maxAssets)
+        external
+        payable
+        returns (uint256 assets)
+    {
+        RedeemClaimer claimer = RedeemClaimer(claimers[batchId]);
+        require(address(claimer) != address(0), "TargetCore: INVALID_CLAIMER");
+        assets = claimer.claim(vault, subvaultIndices, indices, maxAssets);
+        uint256 messageId_ = messageId;
+        bytes memory message = abi.encode(MessageType.CLAIM, messageId_, batchId, assets, 0);
+        _sendMessage(msg.value, message);
+        sentMessageById[messageId_] = message;
+        messageId = messageId_ + 1;
     }
 }

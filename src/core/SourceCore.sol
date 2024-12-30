@@ -15,7 +15,6 @@ contract SourceCore is Core {
         OPEN, // deposits allowed
         PENDING, // no deposits allowed, waiting for processing
         COMPLETED // deposits processed, waiting for claims
-
     }
 
     struct Request {
