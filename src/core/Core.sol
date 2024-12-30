@@ -7,6 +7,13 @@ import "../utils/OwnedERC20.sol";
 import "@openzeppelin/contracts/access/Ownable.sol";
 
 abstract contract Core is Ownable {
+    enum MessageType {
+        DEPOSIT,
+        REDEEM,
+        CLAIM,
+        SLASHING
+    }
+
     OwnedERC20 public immutable asset;
     IAdapter public adapter;
 
@@ -35,5 +42,7 @@ abstract contract Core is Ownable {
 
     function _receiveMessage(uint256 value, bytes memory data) internal virtual;
 
-    function _sendMessage(uint256 value, bytes memory data) internal virtual;
+    function _sendMessage(uint256 value, bytes memory data) internal {
+        adapter.send{value: value}(pairedChainId, pairedCoreAdapterAddress, value, data);
+    }
 }

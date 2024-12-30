@@ -12,7 +12,7 @@ interface IClaimer {
     ) external returns (uint256 assets);
 }
 
-contract WithdrawalClaimer {
+contract RedeemClaimer {
     address public immutable claimer;
     address public immutable owner;
 
@@ -27,7 +27,7 @@ contract WithdrawalClaimer {
         uint256[][] calldata indices,
         uint256 maxAssets
     ) external returns (uint256 assets) {
-        require(msg.sender == owner, "WithdrawalClaimer: forbidden");
+        require(msg.sender == owner, "RedeemClaimer: forbidden");
         return IClaimer(claimer).multiAcceptAndClaim(multiVault, subvaultIndices, indices, owner, maxAssets);
     }
 }
