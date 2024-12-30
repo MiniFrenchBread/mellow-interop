@@ -12,6 +12,31 @@ import "@openzeppelin/contracts/access/Ownable.sol";
 import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 import "@openzeppelin/contracts/utils/math/Math.sol";
 
-abstract contract LayerZeroAdapter is OApp, OAppOptionsType3 {
-// TODO: implement LZ logic here
+import "./IAdapter.sol";
+
+contract LayerZeroAdapter is OApp, OAppOptionsType3, IAdapter {
+    constructor(address endpoint_, address delegate_) OApp(endpoint_, delegate_) Ownable(delegate_) {}
+
+    struct SendCommonParams {
+        uint32 dstEid;
+        address refundAddress;
+    }
+
+    function send(bytes32 chainId, bytes32 sender, uint256 value, bytes calldata data) external payable override {
+        // _lzSend(
+        // uint32 _dstEid,
+        // bytes memory _message,
+        // bytes memory _options,
+        // MessagingFee memory _fee,
+        // address _refundAddress
+        // ) internal virtual returns (MessagingReceipt memory receipt)
+    }
+
+    function _lzReceive(
+        Origin calldata _origin,
+        bytes32 _guid,
+        bytes calldata _message,
+        address _executor,
+        bytes calldata _extraData
+    ) internal override {}
 }

@@ -45,6 +45,7 @@ abstract contract TargetCore is Core {
         }
     }
 
+    // NOTE: permissionless claim
     function claim(uint256 batchId, uint256[] calldata subvaultIndices, uint256[][] calldata indices, uint256 maxAssets)
         external
         payable
