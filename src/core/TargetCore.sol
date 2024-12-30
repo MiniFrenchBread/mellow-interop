@@ -13,6 +13,7 @@ abstract contract TargetCore is Core {
     address public immutable vault;
     address public immutable vaultClaimer;
 
+    address public slasher;
     uint256 public messagesSent;
     mapping(uint256 batchId => address) public claimers;
     mapping(uint256 messageId => bytes) public sentMessageById;
@@ -22,6 +23,10 @@ abstract contract TargetCore is Core {
     {
         vault = vault_;
         vaultClaimer = claimer_;
+    }
+
+    function setSlasher(address slasher_) external onlyOwner {
+        slasher = slasher_;
     }
 
     function _receiveMessage(uint256 value, bytes memory data) internal virtual override {
@@ -52,6 +57,15 @@ abstract contract TargetCore is Core {
         assets = claimer.claim(vault, data);
         uint256 messageId_ = messagesSent;
         bytes memory message = abi.encode(MessageType.CLAIM, messageId_, batchId, assets, 0);
+        _sendMessage(msg.value, message);
+        sentMessageById[messageId_] = message;
+        messagesSent = messageId_ + 1;
+    }
+
+    function onSlash(uint256 assets) external {
+        require(msg.sender == slasher, "TargetCore: INVALID_SLASHER");
+        uint256 messageId_ = messagesSent;
+        bytes memory message = abi.encode(MessageType.SLASHING, messageId_, 0, assets, 0);
         _sendMessage(msg.value, message);
         sentMessageById[messageId_] = message;
         messagesSent = messageId_ + 1;

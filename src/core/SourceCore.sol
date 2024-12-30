@@ -92,7 +92,6 @@ contract SourceCore is Core {
             }
             asset.burn(address(this), shares);
         } else if (messageType == MessageType.SLASHING) {
-            asset.burn(address(this), shares);
             underlyingAsset.safeTransfer(burner, assets);
         } else {
             revert("SourceCore: INVALID_MESSAGE_TYPE");
