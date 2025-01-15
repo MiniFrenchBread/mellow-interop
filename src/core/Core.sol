@@ -44,4 +44,6 @@ abstract contract Core is ICore, Ownable {
     ) internal {
         adapter.sendMessage{value: value}(messageType, message, options, extraOptions);
     }
+
+    receive() external payable {}
 }
