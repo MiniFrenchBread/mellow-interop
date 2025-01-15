@@ -13,6 +13,8 @@ interface IClaimer {
 }
 
 contract RedeemClaimer {
+    error Forbidden();
+
     address public immutable claimer;
     address public immutable owner;
 
@@ -22,7 +24,9 @@ contract RedeemClaimer {
     }
 
     function claim(address multiVault, bytes calldata data) external returns (uint256 assets) {
-        require(msg.sender == owner, "RedeemClaimer: forbidden");
+        if (msg.sender != owner) {
+            revert Forbidden();
+        }
         (uint256[] memory subvaultIndices, uint256[][] memory indices, uint256 maxAssets) =
             abi.decode(data, (uint256[], uint256[][], uint256));
         return IClaimer(claimer).multiAcceptAndClaim(multiVault, subvaultIndices, indices, owner, maxAssets);

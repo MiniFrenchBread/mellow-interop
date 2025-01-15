@@ -5,6 +5,12 @@ pragma solidity 0.8.25;
 import "../interfaces/ICore.sol";
 
 abstract contract Core is ICore, Ownable {
+    error InvalidMessageType();
+    error Forbidden();
+    error InvalidStatus();
+    error LimitOverflow();
+    error LimitUnderflow();
+
     OwnedERC20 public immutable asset;
     IAdapter public adapter;
 
@@ -21,7 +27,9 @@ abstract contract Core is ICore, Ownable {
         payable
         virtual
     {
-        require(msg.sender == address(adapter), "Core: forbidden adapter");
+        if (msg.sender != address(adapter)) {
+            revert Forbidden();
+        }
         _receiveMessage(messageType, message, extraOptions);
     }
 
@@ -38,4 +46,6 @@ abstract contract Core is ICore, Ownable {
     ) internal {
         adapter.sendMessage{value: value}(messageType, message, options, extraOptions);
     }
+
+    receive() external payable {}
 }
