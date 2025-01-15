@@ -15,6 +15,9 @@ import "@openzeppelin/contracts/utils/math/Math.sol";
 import "../interfaces/IAdapter.sol";
 
 contract LayerZeroAdapter is OApp, OAppOptionsType3, IAdapter {
+    error Forbidden();
+    error LimitUnderflow();
+
     ICore public immutable core;
     uint32 public immutable dstEid;
     address public dstAdapter;
@@ -45,13 +48,17 @@ contract LayerZeroAdapter is OApp, OAppOptionsType3, IAdapter {
         bytes calldata options,
         bytes calldata extraOptions
     ) external payable override {
-        require(msg.sender == address(core), "LayerZeroAdapter: only core can call `send` function");
+        if (msg.sender != address(core)) {
+            revert Forbidden();
+        }
 
         bytes memory options_ = combineOptions(dstEid, uint16(uint256(messageType)), options);
 
         MessagingFee memory fee = _quote(dstEid, message, options_, false);
 
-        require(fee.nativeFee <= msg.value, "LayerZeroAdapter: insufficient fee");
+        if (fee.nativeFee > msg.value) {
+            revert LimitUnderflow();
+        }
         MessagingReceipt memory receipt =
             _lzSend(dstEid, encodeMessage(messageType, message, extraOptions), options_, fee, msg.sender);
 
@@ -65,10 +72,12 @@ contract LayerZeroAdapter is OApp, OAppOptionsType3, IAdapter {
         address, /* _executor */
         bytes calldata /* _extraData */
     ) internal override {
-        require(_origin.srcEid == dstEid, "LayerZeroAdapter: wrong source endpoint id");
-        require(
-            _origin.sender == bytes32(uint256(uint160(dstAdapter))), "LayerZeroAdapter: wrong source sender address"
-        );
+        if (_origin.srcEid != dstEid) {
+            revert Forbidden();
+        }
+        if (_origin.sender != bytes32(uint256(uint160(dstAdapter)))) {
+            revert Forbidden();
+        }
 
         (MessageType messageType, bytes memory message, bytes memory extraOptions) = decodeMessage(_message);
         ICore(core).receiveMessage(messageType, message, extraOptions);

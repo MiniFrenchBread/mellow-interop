@@ -5,6 +5,12 @@ pragma solidity 0.8.25;
 import "../interfaces/ICore.sol";
 
 abstract contract Core is ICore, Ownable {
+    error InvalidMessageType();
+    error Forbidden();
+    error InvalidStatus();
+    error LimitOverflow();
+    error LimitUnderflow();
+
     OwnedERC20 public immutable asset;
     IAdapter public adapter;
 

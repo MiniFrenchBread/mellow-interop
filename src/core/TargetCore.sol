@@ -48,7 +48,7 @@ abstract contract TargetCore is Core {
             claimers[batchId] = address(claimer);
             IERC4626(vault).redeem(amount, address(claimer), address(this));
         } else {
-            revert("TargetCore: INVALID_MESSAGE_TYPE");
+            revert InvalidMessageType();
         }
     }
 
@@ -58,14 +58,21 @@ abstract contract TargetCore is Core {
         payable
         returns (uint256 assets)
     {
-        RedeemClaimer claimer = RedeemClaimer(claimers[batchId]);
-        require(address(claimer) != address(0), "TargetCore: INVALID_CLAIMER");
-        assets = claimer.claim(vault, data);
+        address claimer = claimers[batchId];
+        if (claimer == address(0)) {
+            revert Forbidden();
+        }
+        assets = RedeemClaimer(claimer).claim(vault, data);
+        if (assets == 0) {
+            revert Forbidden();
+        }
         _sendMessage(IAdapter.MessageType.CLAIM, abi.encode(batchId, assets), options, new bytes(0), msg.value);
     }
 
     function onSlash(uint256 assets, bytes calldata options) external payable {
-        require(msg.sender == burner, "TargetCore: INVALID_BURNER");
+        if (msg.sender != burner) {
+            revert Forbidden();
+        }
         _sendMessage(IAdapter.MessageType.SLASHING, abi.encode(0, assets), options, new bytes(0), msg.value);
     }
 }

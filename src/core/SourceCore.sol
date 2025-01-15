@@ -101,13 +101,17 @@ contract SourceCore is Core {
         (uint256 batchId, uint256 amount) = abi.decode(message, (uint256, uint256));
         if (messageType == IAdapter.MessageType.DEPOSIT) {
             Request storage deposit_ = _deposits[batchId];
-            require(deposit_.status == Status.PENDING, "SourceCore: INVALID_STATUS");
+            if (deposit_.status != Status.PENDING) {
+                revert InvalidStatus();
+            }
             deposit_.status = Status.COMPLETED;
             deposit_.processed = amount;
         } else if (messageType == IAdapter.MessageType.CLAIM) {
             Request storage redeem_ = _redeems[batchId];
             Status status = redeem_.status;
-            require(status == Status.PENDING || status == Status.COMPLETED, "SourceCore: INVALID_STATUS");
+            if (status != Status.PENDING && status != Status.COMPLETED) {
+                revert InvalidStatus();
+            }
             if (status == Status.PENDING) {
                 redeem_.status = Status.COMPLETED;
                 redeem_.processed = amount;
@@ -118,21 +122,20 @@ contract SourceCore is Core {
         } else if (messageType == IAdapter.MessageType.SLASHING) {
             underlyingAsset.safeTransfer(burner, amount);
         } else {
-            revert("SourceCore: INVALID_MESSAGE_TYPE");
+            revert InvalidMessageType();
         }
     }
 
     function deposit(uint256 assets, address receiver) external payable returns (uint256 batchId) {
-        if (depositPause) {
-            revert("SourceCore: DEPOSIT_PAUSED");
+        if (depositPause || isDepositWhitelist && !depositorWhitelistStatus[msg.sender]) {
+            revert Forbidden();
         }
         if (assets + underlyingAsset.balanceOf(address(this)) > limit) {
-            revert("SourceCore: LIMIT_REACHED");
+            revert LimitOverflow();
         }
-        if (isDepositWhitelist && !depositorWhitelistStatus[msg.sender]) {
-            revert("SourceCore: NOT_WHITELISTED");
+        if (msg.value < minDepositValue) {
+            revert LimitUnderflow();
         }
-        require(msg.value >= minDepositValue, "SourceCore: INVALID_VALUE");
         underlyingAsset.safeTransferFrom(msg.sender, address(this), assets);
 
         batchId = depositBatches;
@@ -159,10 +162,16 @@ contract SourceCore is Core {
 
     function pushDepositBatch(uint256 batchId, bytes calldata options, bytes calldata extraOptions) external payable {
         Request storage deposit_ = _deposits[batchId];
-        require(deposit_.status == Status.OPEN, "SourceCore: INVALID_STATUS");
-        require(deposit_.requested > 0, "SourceCore: INVALID_AMOUNT");
+        if (deposit_.status != Status.OPEN) {
+            revert InvalidStatus();
+        }
+        if (deposit_.requested == 0) {
+            revert Forbidden();
+        }
         uint256 depositValue = deposit_.value + msg.value;
-        require(depositValue >= minPushDepositBatchValue, "SourceCore: INVALID_VALUE");
+        if (depositValue < minPushDepositBatchValue) {
+            revert LimitUnderflow();
+        }
         depositBatches++;
         deposit_.status = Status.PENDING;
         deposit_.value = 0;
@@ -198,9 +207,11 @@ contract SourceCore is Core {
 
     function redeem(uint256 shares, address receiver) external payable returns (uint256 batchId) {
         if (redeemPause) {
-            revert("SourceCore: REDEEM_PAUSED");
+            revert Forbidden();
         }
-        require(msg.value >= minRedeemValue, "SourceCore: INVALID_VALUE");
+        if (msg.value < minRedeemValue) {
+            revert LimitUnderflow();
+        }
         asset.burn(msg.sender, shares);
         batchId = redeemBatches;
         Request storage redeem_ = _redeems[batchId];
@@ -226,10 +237,16 @@ contract SourceCore is Core {
 
     function pushRedeemBatch(uint256 batchId, bytes calldata options, bytes calldata extraOptions) external payable {
         Request storage redeem_ = _redeems[batchId];
-        require(redeem_.status == Status.OPEN, "SourceCore: INVALID_STATUS");
-        require(redeem_.requested > 0, "SourceCore: INVALID_AMOUNT");
+        if (redeem_.status != Status.OPEN) {
+            revert InvalidStatus();
+        }
+        if (redeem_.requested == 0) {
+            revert Forbidden();
+        }
         uint256 redeemValue = redeem_.value + msg.value;
-        require(redeemValue >= minPushRedeemBatchValue, "SourceCore: INVALID_VALUE");
+        if (redeemValue < minPushRedeemBatchValue) {
+            revert LimitUnderflow();
+        }
         redeemBatches++;
         redeem_.status = Status.PENDING;
         redeem_.value = 0;
