@@ -132,7 +132,6 @@ contract SourceCore is Core {
             } else {
                 redeem_.processed += amount;
             }
-            asset.burn(address(this), amount);
             isClaimCompleted[batchId][index] = true;
         } else if (messageType == IAdapter.MessageType.SLASHING || messageType == IAdapter.MessageType.RETRY_SLASHING) {
             (uint256 index, uint256 amount) = abi.decode(message, (uint256, uint256));
