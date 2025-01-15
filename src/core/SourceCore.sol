@@ -61,7 +61,7 @@ contract SourceCore is Core {
         burner = burner_;
     }
 
-    function setLimit(uint256 newLimit) external onlyOnwer {
+    function setLimit(uint256 newLimit) external onlyOwner {
         limit = newLimit;
     }
 

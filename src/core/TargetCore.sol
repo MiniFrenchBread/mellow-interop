@@ -5,27 +5,29 @@ pragma solidity 0.8.25;
 import "../utils/RedeemClaimer.sol";
 import "./Core.sol";
 import "@openzeppelin/contracts/interfaces/IERC4626.sol";
+
+import "@openzeppelin/contracts/proxy/Clones.sol";
 import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 
 abstract contract TargetCore is Core {
     using SafeERC20 for IERC20;
 
     address public immutable vault;
-    address public immutable vaultClaimer;
+    RedeemClaimer public immutable claimerSingleton;
 
-    address public slasher;
+    address public burner;
     mapping(uint256 batchId => address) public claimers;
 
     constructor(address owner_, address vault_, address claimer_, string memory name_, string memory symbol_)
         Core(owner_, name_, symbol_)
     {
         vault = vault_;
-        vaultClaimer = claimer_;
+        claimerSingleton = new RedeemClaimer(claimer_, address(this));
     }
 
-    function setSlasher(address slasher_) external onlyOwner {
-        /// @dev vault, separate slasher contract or zero address
-        slasher = slasher_;
+    function setBurner(address burner_) external onlyOwner {
+        /// @dev vault, separate burner contract or zero address
+        burner = burner_;
     }
 
     function _receiveMessage(IAdapter.MessageType messageType, bytes calldata message, bytes calldata extraOptions)
@@ -42,7 +44,7 @@ abstract contract TargetCore is Core {
                 IAdapter.MessageType.DEPOSIT, abi.encode(batchId, shares), extraOptions, new bytes(0), msg.value
             );
         } else if (messageType == IAdapter.MessageType.REDEEM) {
-            RedeemClaimer claimer = new RedeemClaimer(vaultClaimer, address(this));
+            address claimer = Clones.cloneDeterministic(address(claimerSingleton), bytes32(batchId));
             claimers[batchId] = address(claimer);
             IERC4626(vault).redeem(amount, address(claimer), address(this));
         } else {
@@ -63,7 +65,7 @@ abstract contract TargetCore is Core {
     }
 
     function onSlash(uint256 assets, bytes calldata options) external payable {
-        require(msg.sender == slasher, "TargetCore: INVALID_SLASHER");
+        require(msg.sender == burner, "TargetCore: INVALID_BURNER");
         _sendMessage(IAdapter.MessageType.SLASHING, abi.encode(0, assets), options, new bytes(0), msg.value);
     }
 }
