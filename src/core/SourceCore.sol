@@ -1,5 +1,4 @@
 // SPDX-License-Identifier: BUSL-1.1
-
 pragma solidity 0.8.25;
 
 import "./Core.sol";
@@ -48,8 +47,15 @@ contract SourceCore is Core {
     bool public depositPause;
     bool public redeemPause;
 
+    uint256 public pushDelay = 4 hours;
+
+    mapping(uint256 batchId => uint256) public pushDepositsTimestamp;
+    mapping(uint256 batchId => uint256) public pushRedeemsTimestamp;
     mapping(uint256 batchId => Request) private _deposits;
     mapping(uint256 batchId => Request) private _redeems;
+
+    mapping(uint256 batchId => mapping(uint256 index => bool)) public isClaimCompleted;
+    mapping(uint256 index => bool) public isSlashingCompleted;
 
     constructor(address owner_, address underlying, string memory name_, string memory symbol_)
         Core(owner_, name_, symbol_)
@@ -81,6 +87,10 @@ contract SourceCore is Core {
         redeemPause = status;
     }
 
+    function setPushDelay(uint256 newPushDelay) external onlyOwner {
+        pushDelay = newPushDelay;
+    }
+
     function setValues(
         uint256 minDepositValue_,
         uint256 minPushDepositBatchValue_,
@@ -98,16 +108,23 @@ contract SourceCore is Core {
         bytes calldata message,
         bytes calldata /* extraOptions */
     ) internal virtual override {
-        (uint256 batchId, uint256 amount) = abi.decode(message, (uint256, uint256));
         if (messageType == IAdapter.MessageType.DEPOSIT) {
+            (uint256 batchId, uint256 amount) = abi.decode(message, (uint256, uint256));
             Request storage deposit_ = _deposits[batchId];
             if (deposit_.status != Status.PENDING) {
                 revert InvalidStatus();
             }
             deposit_.status = Status.COMPLETED;
             deposit_.processed = amount;
-        } else if (messageType == IAdapter.MessageType.CLAIM) {
+        } else if (messageType == IAdapter.MessageType.CLAIM || messageType == IAdapter.MessageType.RETRY_CLAIM) {
+            (uint256 batchId, uint256 index, uint256 amount) = abi.decode(message, (uint256, uint256, uint256));
             Request storage redeem_ = _redeems[batchId];
+            if (isClaimCompleted[batchId][index]) {
+                if (messageType != IAdapter.MessageType.RETRY_CLAIM) {
+                    revert Forbidden();
+                }
+                return;
+            }
             Status status = redeem_.status;
             if (status != Status.PENDING && status != Status.COMPLETED) {
                 revert InvalidStatus();
@@ -119,7 +136,16 @@ contract SourceCore is Core {
                 redeem_.processed += amount;
             }
             asset.burn(address(this), amount);
-        } else if (messageType == IAdapter.MessageType.SLASHING) {
+            isClaimCompleted[batchId][index] = true;
+        } else if (messageType == IAdapter.MessageType.SLASHING || messageType == IAdapter.MessageType.RETRY_SLASHING) {
+            (uint256 index, uint256 amount) = abi.decode(message, (uint256, uint256));
+            if (isSlashingCompleted[index]) {
+                if (messageType != IAdapter.MessageType.RETRY_SLASHING) {
+                    revert Forbidden();
+                }
+                return;
+            }
+            isSlashingCompleted[index] = true;
             underlyingAsset.safeTransfer(burner, amount);
         } else {
             revert InvalidMessageType();
@@ -165,6 +191,9 @@ contract SourceCore is Core {
         if (deposit_.status != Status.OPEN) {
             revert InvalidStatus();
         }
+        if (batchId != 0 && _deposits[batchId - 1].status != Status.COMPLETED) {
+            revert InvalidStatus();
+        }
         if (deposit_.requested == 0) {
             revert Forbidden();
         }
@@ -175,8 +204,37 @@ contract SourceCore is Core {
         depositBatches++;
         deposit_.status = Status.PENDING;
         deposit_.value = 0;
+        pushDepositsTimestamp[batchId] = block.timestamp;
         _sendMessage(
             IAdapter.MessageType.DEPOSIT, abi.encode(batchId, deposit_.requested), options, extraOptions, depositValue
+        );
+    }
+
+    function retryPushDepositBatch(uint256 batchId, bytes calldata options, bytes calldata extraOptions)
+        external
+        payable
+    {
+        Request storage deposit_ = _deposits[batchId];
+        if (deposit_.status != Status.PENDING) {
+            revert InvalidStatus();
+        }
+        if (deposit_.requested == 0) {
+            revert Forbidden();
+        }
+        if (block.timestamp < pushDepositsTimestamp[batchId] + pushDelay) {
+            revert Forbidden();
+        }
+        uint256 depositValue = msg.value;
+        if (depositValue < minPushDepositBatchValue) {
+            revert LimitUnderflow();
+        }
+        pushDepositsTimestamp[batchId] = block.timestamp;
+        _sendMessage(
+            IAdapter.MessageType.RETRY_DEPOSIT,
+            abi.encode(batchId, deposit_.requested),
+            options,
+            extraOptions,
+            depositValue
         );
     }
 
