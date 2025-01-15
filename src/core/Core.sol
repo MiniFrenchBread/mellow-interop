@@ -2,24 +2,11 @@
 
 pragma solidity 0.8.25;
 
-import "../adapters/IAdapter.sol";
-import "../utils/OwnedERC20.sol";
-import "@openzeppelin/contracts/access/Ownable.sol";
+import "../interfaces/ICore.sol";
 
-abstract contract Core is Ownable {
-    enum MessageType {
-        DEPOSIT,
-        REDEEM,
-        CLAIM,
-        SLASHING
-    }
-
+abstract contract Core is ICore, Ownable {
     OwnedERC20 public immutable asset;
     IAdapter public adapter;
-
-    bytes32 public pairedChainId;
-    bytes32 public pairedCoreAddress;
-    bytes32 public pairedCoreAdapterAddress;
 
     constructor(address owner_, string memory name_, string memory symbol_) Ownable(owner_) {
         asset = new OwnedERC20(name_, symbol_, address(this));
@@ -29,20 +16,26 @@ abstract contract Core is Ownable {
         adapter = IAdapter(newAdapter);
     }
 
-    function receiveMessage(bytes32 chainId, bytes32 sender, uint256 value, bytes calldata data)
+    function receiveMessage(IAdapter.MessageType messageType, bytes calldata message, bytes calldata extraOptions)
         external
         payable
         virtual
     {
-        require(msg.sender == address(adapter), "BaseCore: forbidden adapter");
-        require(chainId == pairedChainId, "BaseCore: wrong chain id");
-        require(sender == pairedCoreAdapterAddress, "BaseCore: wrong sender");
-        _receiveMessage(value, data);
+        require(msg.sender == address(adapter), "Core: forbidden adapter");
+        _receiveMessage(messageType, message, extraOptions);
     }
 
-    function _receiveMessage(uint256 value, bytes memory data) internal virtual;
+    function _receiveMessage(IAdapter.MessageType messageType, bytes calldata message, bytes calldata extraOptions)
+        internal
+        virtual;
 
-    function _sendMessage(uint256 value, bytes memory data) internal {
-        adapter.send{value: value}(pairedChainId, pairedCoreAdapterAddress, data);
+    function _sendMessage(
+        IAdapter.MessageType messageType,
+        bytes memory message,
+        bytes memory options,
+        bytes memory extraOptions,
+        uint256 value
+    ) internal {
+        adapter.sendMessage{value: value}(messageType, message, options, extraOptions);
     }
 }

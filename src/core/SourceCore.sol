@@ -22,9 +22,9 @@ contract SourceCore is Core {
         uint256 requested;
         uint256 processed;
         uint256 claimed;
+        Status status;
         mapping(address account => uint256) accountRequest;
         mapping(address account => uint256) accountClaimed;
-        Status status;
     }
 
     IERC20 public immutable underlyingAsset;
@@ -40,10 +40,16 @@ contract SourceCore is Core {
     uint256 public minRedeemValue;
     uint256 public minPushRedeemBatchValue;
 
+    uint256 public limit;
+
+    bool public isDepositWhitelist;
+    mapping(address account => bool) public depositorWhitelistStatus;
+
+    bool public depositPause;
+    bool public redeemPause;
+
     mapping(uint256 batchId => Request) private _deposits;
     mapping(uint256 batchId => Request) private _redeems;
-
-    mapping(uint256 messageId => bool) public isMessageReceived;
 
     constructor(address owner_, address underlying, string memory name_, string memory symbol_)
         Core(owner_, name_, symbol_)
@@ -55,7 +61,26 @@ contract SourceCore is Core {
         burner = burner_;
     }
 
-    // TODO: `quote` from LZ?
+    function setLimit(uint256 newLimit) external onlyOnwer {
+        limit = newLimit;
+    }
+
+    function setDepositWhitelist(bool status) external onlyOwner {
+        isDepositWhitelist = status;
+    }
+
+    function setDepositorWhitelistStatus(address account, bool status) external onlyOwner {
+        depositorWhitelistStatus[account] = status;
+    }
+
+    function setDepositPause(bool status) external onlyOwner {
+        depositPause = status;
+    }
+
+    function setRedeemPause(bool status) external onlyOwner {
+        redeemPause = status;
+    }
+
     function setValues(
         uint256 minDepositValue_,
         uint256 minPushDepositBatchValue_,
@@ -68,37 +93,45 @@ contract SourceCore is Core {
         minPushRedeemBatchValue = minPushRedeemBatchValue_;
     }
 
-    function _receiveMessage(uint256, /* value */ bytes memory data) internal virtual override {
-        (MessageType messageType, uint256 messageId, uint256 batchId, uint256 assets, uint256 shares) =
-            abi.decode(data, (MessageType, uint256, uint256, uint256, uint256));
-        isMessageReceived[messageId] = true;
-        if (messageType == MessageType.DEPOSIT) {
+    function _receiveMessage(
+        IAdapter.MessageType messageType,
+        bytes calldata message,
+        bytes calldata /* extraOptions */
+    ) internal virtual override {
+        (uint256 batchId, uint256 amount) = abi.decode(message, (uint256, uint256));
+        if (messageType == IAdapter.MessageType.DEPOSIT) {
             Request storage deposit_ = _deposits[batchId];
             require(deposit_.status == Status.PENDING, "SourceCore: INVALID_STATUS");
             deposit_.status = Status.COMPLETED;
-            deposit_.processed = shares;
-        } else if (messageType == MessageType.CLAIM) {
+            deposit_.processed = amount;
+        } else if (messageType == IAdapter.MessageType.CLAIM) {
             Request storage redeem_ = _redeems[batchId];
             Status status = redeem_.status;
             require(status == Status.PENDING || status == Status.COMPLETED, "SourceCore: INVALID_STATUS");
             if (status == Status.PENDING) {
-                // Here, competed means that some withdrawals from subvaults have been processed.
-                // While it is still possible to have some pending withdrawals,
-                // we would like to allow users to withdraw such assets as soon as possible.
                 redeem_.status = Status.COMPLETED;
-                redeem_.processed = assets;
+                redeem_.processed = amount;
             } else {
-                redeem_.processed += assets;
+                redeem_.processed += amount;
             }
-            asset.burn(address(this), shares);
-        } else if (messageType == MessageType.SLASHING) {
-            underlyingAsset.safeTransfer(burner, assets);
+            asset.burn(address(this), amount);
+        } else if (messageType == IAdapter.MessageType.SLASHING) {
+            underlyingAsset.safeTransfer(burner, amount);
         } else {
             revert("SourceCore: INVALID_MESSAGE_TYPE");
         }
     }
 
     function deposit(uint256 assets, address receiver) external payable returns (uint256 batchId) {
+        if (depositPause) {
+            revert("SourceCore: DEPOSIT_PAUSED");
+        }
+        if (assets + underlyingAsset.balanceOf(address(this)) > limit) {
+            revert("SourceCore: LIMIT_REACHED");
+        }
+        if (isDepositWhitelist && !depositorWhitelistStatus[msg.sender]) {
+            revert("SourceCore: NOT_WHITELISTED");
+        }
         require(msg.value >= minDepositValue, "SourceCore: INVALID_VALUE");
         underlyingAsset.safeTransferFrom(msg.sender, address(this), assets);
 
@@ -124,7 +157,7 @@ contract SourceCore is Core {
         }
     }
 
-    function pushDepositBatch(uint256 batchId) external payable {
+    function pushDepositBatch(uint256 batchId, bytes calldata options, bytes calldata extraOptions) external payable {
         Request storage deposit_ = _deposits[batchId];
         require(deposit_.status == Status.OPEN, "SourceCore: INVALID_STATUS");
         require(deposit_.requested > 0, "SourceCore: INVALID_AMOUNT");
@@ -132,7 +165,10 @@ contract SourceCore is Core {
         require(depositValue >= minPushDepositBatchValue, "SourceCore: INVALID_VALUE");
         depositBatches++;
         deposit_.status = Status.PENDING;
-        _sendMessage(depositValue, abi.encode(MessageType.DEPOSIT, batchId, deposit_.requested));
+        deposit_.value = 0;
+        _sendMessage(
+            IAdapter.MessageType.DEPOSIT, abi.encode(batchId, deposit_.requested), options, extraOptions, depositValue
+        );
     }
 
     function claimDeposits(uint256[] calldata batchIds, address recipient) external returns (uint256 shares) {
@@ -161,6 +197,9 @@ contract SourceCore is Core {
     }
 
     function redeem(uint256 shares, address receiver) external payable returns (uint256 batchId) {
+        if (redeemPause) {
+            revert("SourceCore: REDEEM_PAUSED");
+        }
         require(msg.value >= minRedeemValue, "SourceCore: INVALID_VALUE");
         asset.burn(msg.sender, shares);
         batchId = redeemBatches;
@@ -185,7 +224,7 @@ contract SourceCore is Core {
         }
     }
 
-    function pushRedeemBatch(uint256 batchId) external payable {
+    function pushRedeemBatch(uint256 batchId, bytes calldata options, bytes calldata extraOptions) external payable {
         Request storage redeem_ = _redeems[batchId];
         require(redeem_.status == Status.OPEN, "SourceCore: INVALID_STATUS");
         require(redeem_.requested > 0, "SourceCore: INVALID_AMOUNT");
@@ -193,7 +232,10 @@ contract SourceCore is Core {
         require(redeemValue >= minPushRedeemBatchValue, "SourceCore: INVALID_VALUE");
         redeemBatches++;
         redeem_.status = Status.PENDING;
-        _sendMessage(redeemValue, abi.encode(MessageType.REDEEM, batchId, redeem_.requested));
+        redeem_.value = 0;
+        _sendMessage(
+            IAdapter.MessageType.REDEEM, abi.encode(batchId, redeem_.requested), options, extraOptions, redeemValue
+        );
     }
 
     function claimRedeems(uint256[] calldata batchIds, address recipient) external returns (uint256 assets) {

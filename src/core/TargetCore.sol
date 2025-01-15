@@ -14,9 +14,7 @@ abstract contract TargetCore is Core {
     address public immutable vaultClaimer;
 
     address public slasher;
-    uint256 public messagesSent;
     mapping(uint256 batchId => address) public claimers;
-    mapping(uint256 messageId => bytes) public sentMessageById;
 
     constructor(address owner_, address vault_, address claimer_, string memory name_, string memory symbol_)
         Core(owner_, name_, symbol_)
@@ -26,48 +24,46 @@ abstract contract TargetCore is Core {
     }
 
     function setSlasher(address slasher_) external onlyOwner {
+        /// @dev vault, separate slasher contract or zero address
         slasher = slasher_;
     }
 
-    function _receiveMessage(uint256 value, bytes memory data) internal virtual override {
-        (MessageType messageType, uint256 batchId, uint256 assets, uint256 shares) =
-            abi.decode(data, (MessageType, uint256, uint256, uint256));
-        if (messageType == MessageType.DEPOSIT) {
-            asset.mint(address(this), assets);
-            IERC20(asset).safeIncreaseAllowance(vault, assets);
-            shares = IERC4626(vault).deposit(assets, address(this));
-            uint256 messageId_ = messagesSent;
-            bytes memory message = abi.encode(MessageType.DEPOSIT, messageId_, batchId, assets, shares);
-            _sendMessage(value, message);
-            sentMessageById[messageId_] = message;
-            messagesSent = messageId_ + 1;
-        } else if (messageType == MessageType.REDEEM) {
+    function _receiveMessage(IAdapter.MessageType messageType, bytes calldata message, bytes calldata extraOptions)
+        internal
+        virtual
+        override
+    {
+        (uint256 batchId, uint256 amount) = abi.decode(message, (uint256, uint256));
+        if (messageType == IAdapter.MessageType.DEPOSIT) {
+            asset.mint(address(this), amount);
+            IERC20(asset).safeIncreaseAllowance(vault, amount);
+            uint256 shares = IERC4626(vault).deposit(amount, address(this));
+            _sendMessage(
+                IAdapter.MessageType.DEPOSIT, abi.encode(batchId, shares), extraOptions, new bytes(0), msg.value
+            );
+        } else if (messageType == IAdapter.MessageType.REDEEM) {
             RedeemClaimer claimer = new RedeemClaimer(vaultClaimer, address(this));
             claimers[batchId] = address(claimer);
-            IERC4626(vault).redeem(shares, address(claimer), address(this));
+            IERC4626(vault).redeem(amount, address(claimer), address(this));
         } else {
             revert("TargetCore: INVALID_MESSAGE_TYPE");
         }
     }
 
     // NOTE: permissionless claim
-    function claim(uint256 batchId, bytes calldata data) external payable returns (uint256 assets) {
+    function claim(uint256 batchId, bytes calldata data, bytes calldata options)
+        external
+        payable
+        returns (uint256 assets)
+    {
         RedeemClaimer claimer = RedeemClaimer(claimers[batchId]);
         require(address(claimer) != address(0), "TargetCore: INVALID_CLAIMER");
         assets = claimer.claim(vault, data);
-        uint256 messageId_ = messagesSent;
-        bytes memory message = abi.encode(MessageType.CLAIM, messageId_, batchId, assets, 0);
-        _sendMessage(msg.value, message);
-        sentMessageById[messageId_] = message;
-        messagesSent = messageId_ + 1;
+        _sendMessage(IAdapter.MessageType.CLAIM, abi.encode(batchId, assets), options, new bytes(0), msg.value);
     }
 
-    function onSlash(uint256 assets) external {
+    function onSlash(uint256 assets, bytes calldata options) external payable {
         require(msg.sender == slasher, "TargetCore: INVALID_SLASHER");
-        uint256 messageId_ = messagesSent;
-        bytes memory message = abi.encode(MessageType.SLASHING, messageId_, 0, assets, 0);
-        _sendMessage(msg.value, message);
-        sentMessageById[messageId_] = message;
-        messagesSent = messageId_ + 1;
+        _sendMessage(IAdapter.MessageType.SLASHING, abi.encode(0, assets), options, new bytes(0), msg.value);
     }
 }
