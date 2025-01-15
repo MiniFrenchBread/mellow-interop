@@ -1,11 +1,12 @@
 {
-    "name": "mellow-interop",
-    "license": "UNLICENSED",
-    "version": "1.0.0",
-    "repository": "https://github.com/mellow-finance/mellow-interop",
-    "scripts": {
-      "compile": "forge build",
-      "prettier": "forge fmt",
-      "sizes": "forge build --sizes --force"
-    }
+  "name": "mellow-interop",
+  "license": "UNLICENSED",
+  "version": "1.0.0",
+  "repository": "https://github.com/mellow-finance/mellow-interop",
+  "scripts": {
+    "compile": "forge build",
+    "prettier": "forge fmt",
+    "sizes": "forge build --sizes --force",
+    "scc:report": "scc src --sort names --no-cocomo --exclude-dir interfaces --by-file --format wide > scc-report.txt"
   }
+}
