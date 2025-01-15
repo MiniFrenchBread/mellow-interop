@@ -27,7 +27,9 @@ abstract contract Core is ICore, Ownable {
         payable
         virtual
     {
-        require(msg.sender == address(adapter), "Core: forbidden adapter");
+        if (msg.sender != address(adapter)) {
+            revert Forbidden();
+        }
         _receiveMessage(messageType, message, extraOptions);
     }
 
