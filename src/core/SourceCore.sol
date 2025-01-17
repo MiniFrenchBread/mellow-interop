@@ -309,6 +309,34 @@ contract SourceCore is Core {
         );
     }
 
+    function retryPushRedeemBatch(uint256 batchId, bytes calldata options, bytes calldata extraOptions)
+        external
+        payable
+    {
+        Request storage redeem_ = _redeems[batchId];
+        if (redeem_.status != Status.PENDING) {
+            revert InvalidStatus();
+        }
+        if (redeem_.requested == 0) {
+            revert Forbidden();
+        }
+        if (block.timestamp < pushRedeemsTimestamp[batchId] + pushDelay) {
+            revert Forbidden();
+        }
+        uint256 redeemValue = msg.value;
+        if (redeemValue < minPushDepositBatchValue) {
+            revert LimitUnderflow();
+        }
+        pushRedeemsTimestamp[batchId] = block.timestamp;
+        _sendMessage(
+            IAdapter.MessageType.RETRY_REDEEM,
+            abi.encode(batchId, redeem_.requested),
+            options,
+            extraOptions,
+            redeemValue
+        );
+    }
+
     function claimRedeems(uint256[] calldata batchIds, address recipient) external returns (uint256 assets) {
         address sender = msg.sender;
         for (uint256 i = 0; i < batchIds.length; i++) {
@@ -331,6 +359,26 @@ contract SourceCore is Core {
         }
         if (assets != 0) {
             underlyingAsset.safeTransfer(recipient, assets);
+        }
+    }
+
+    function claimableRedeemsOf(address user, uint256[] calldata batchIds) external view returns (uint256 assets) {
+        for (uint256 i = 0; i < batchIds.length; i++) {
+            Request storage redeem_ = _redeems[batchIds[i]];
+            if (redeem_.status != Status.COMPLETED) {
+                continue;
+            }
+            uint256 accountRequest = redeem_.accountRequest[user];
+            if (accountRequest == 0) {
+                continue;
+            }
+            uint256 due = Math.mulDiv(redeem_.processed, redeem_.requested, accountRequest);
+            uint256 claimed = redeem_.accountClaimed[user];
+            if (claimed >= due) {
+                continue;
+            }
+            uint256 leftover = due - claimed;
+            assets += leftover;
         }
     }
 }

@@ -20,10 +20,6 @@ interface ILayerZeroAdapter is IAdapter {
 
     function dstEid() external view returns (uint32);
 
-    function dstAdapter() external view returns (address);
-
-    function setDestinationAdapter(address adapter) external;
-
     function encodeMessage(MessageType messageType, bytes calldata message, bytes calldata extraOptions)
         external
         view

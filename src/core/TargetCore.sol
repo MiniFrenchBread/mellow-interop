@@ -5,7 +5,7 @@ pragma solidity 0.8.25;
 import "../utils/RedeemClaimer.sol";
 import "./Core.sol";
 
-abstract contract TargetCore is Core {
+contract TargetCore is Core {
     using SafeERC20 for IERC20;
 
     address public immutable vault;
@@ -110,7 +110,9 @@ abstract contract TargetCore is Core {
         if (assets == 0) {
             revert Forbidden();
         }
-        _sendMessage(IAdapter.MessageType.RETRY_CLAIM, abi.encode(batchId, assets), options, new bytes(0), msg.value);
+        _sendMessage(
+            IAdapter.MessageType.RETRY_CLAIM, abi.encode(batchId, index, assets), options, new bytes(0), msg.value
+        );
     }
 
     function slash(uint256 assets, bytes calldata options) external payable {
