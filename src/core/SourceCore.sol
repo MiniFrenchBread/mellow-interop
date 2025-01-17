@@ -309,6 +309,34 @@ contract SourceCore is Core {
         );
     }
 
+    function retryPushRedeemBatch(uint256 batchId, bytes calldata options, bytes calldata extraOptions)
+        external
+        payable
+    {
+        Request storage redeem_ = _redeems[batchId];
+        if (redeem_.status != Status.PENDING) {
+            revert InvalidStatus();
+        }
+        if (redeem_.requested == 0) {
+            revert Forbidden();
+        }
+        if (block.timestamp < pushRedeemsTimestamp[batchId] + pushDelay) {
+            revert Forbidden();
+        }
+        uint256 redeemValue = msg.value;
+        if (redeemValue < minPushDepositBatchValue) {
+            revert LimitUnderflow();
+        }
+        pushRedeemsTimestamp[batchId] = block.timestamp;
+        _sendMessage(
+            IAdapter.MessageType.RETRY_REDEEM,
+            abi.encode(batchId, redeem_.requested),
+            options,
+            extraOptions,
+            redeemValue
+        );
+    }
+
     function claimRedeems(uint256[] calldata batchIds, address recipient) external returns (uint256 assets) {
         address sender = msg.sender;
         for (uint256 i = 0; i < batchIds.length; i++) {

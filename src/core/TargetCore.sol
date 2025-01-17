@@ -5,7 +5,7 @@ pragma solidity 0.8.25;
 import "../utils/RedeemClaimer.sol";
 import "./Core.sol";
 
-abstract contract TargetCore is Core {
+contract TargetCore is Core {
     using SafeERC20 for IERC20;
 
     address public immutable vault;
