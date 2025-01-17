@@ -7,14 +7,13 @@ import "../interfaces/ILayerZeroAdapter.sol";
 contract LayerZeroAdapter is OApp, OAppOptionsType3, ILayerZeroAdapter {
     ICore public immutable core;
     uint32 public immutable dstEid;
-    address public dstAdapter;
 
-    constructor(address endpoint_, address delegate_, address core_) OApp(endpoint_, delegate_) Ownable(delegate_) {
+    constructor(address endpoint_, address delegate_, address core_, uint32 dstEid_)
+        OApp(endpoint_, delegate_)
+        Ownable(delegate_)
+    {
         core = ICore(core_);
-    }
-
-    function setDestinationAdapter(address adapter) external onlyOwner {
-        dstAdapter = adapter;
+        dstEid = dstEid_;
     }
 
     function encodeMessage(MessageType messageType, bytes calldata message, bytes calldata extraOptions)
@@ -46,26 +45,20 @@ contract LayerZeroAdapter is OApp, OAppOptionsType3, ILayerZeroAdapter {
         if (fee.nativeFee > msg.value) {
             revert LimitUnderflow();
         }
-        MessagingReceipt memory receipt =
-            _lzSend(dstEid, encodeMessage(messageType, message, extraOptions), options_, fee, msg.sender);
+        MessagingReceipt memory receipt = _lzSend(
+            dstEid, encodeMessage(messageType, message, extraOptions), options_, fee, Ownable(msg.sender).owner()
+        );
 
         emit Sent(dstEid, message, options_, extraOptions, receipt);
     }
 
     function _lzReceive(
-        Origin calldata _origin,
+        Origin calldata, /* _origin */
         bytes32, /* _guid */
         bytes calldata _message,
         address, /* _executor */
         bytes calldata /* _extraData */
     ) internal override {
-        if (_origin.srcEid != dstEid) {
-            revert Forbidden();
-        }
-        if (_origin.sender != bytes32(uint256(uint160(dstAdapter)))) {
-            revert Forbidden();
-        }
-
         (MessageType messageType, bytes memory message, bytes memory extraOptions) = decodeMessage(_message);
         ICore(core).receiveMessage(messageType, message, extraOptions);
     }

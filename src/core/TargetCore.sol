@@ -110,7 +110,9 @@ contract TargetCore is Core {
         if (assets == 0) {
             revert Forbidden();
         }
-        _sendMessage(IAdapter.MessageType.RETRY_CLAIM, abi.encode(batchId, assets), options, new bytes(0), msg.value);
+        _sendMessage(
+            IAdapter.MessageType.RETRY_CLAIM, abi.encode(batchId, index, assets), options, new bytes(0), msg.value
+        );
     }
 
     function slash(uint256 assets, bytes calldata options) external payable {
