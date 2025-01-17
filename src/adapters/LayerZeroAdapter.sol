@@ -7,6 +7,7 @@ import "../interfaces/ILayerZeroAdapter.sol";
 contract LayerZeroAdapter is OApp, OAppOptionsType3, ILayerZeroAdapter {
     ICore public immutable core;
     uint32 public immutable dstEid;
+    address public gasReceiver;
 
     constructor(address endpoint_, address delegate_, address core_, uint32 dstEid_)
         OApp(endpoint_, delegate_)
@@ -14,6 +15,10 @@ contract LayerZeroAdapter is OApp, OAppOptionsType3, ILayerZeroAdapter {
     {
         core = ICore(core_);
         dstEid = dstEid_;
+    }
+
+    function setGasReceiver(address receiver) external onlyOwner {
+        gasReceiver = receiver;
     }
 
     function encodeMessage(MessageType messageType, bytes calldata message, bytes calldata extraOptions)
@@ -45,9 +50,8 @@ contract LayerZeroAdapter is OApp, OAppOptionsType3, ILayerZeroAdapter {
         if (fee.nativeFee > msg.value) {
             revert LimitUnderflow();
         }
-        MessagingReceipt memory receipt = _lzSend(
-            dstEid, encodeMessage(messageType, message, extraOptions), options_, fee, Ownable(msg.sender).owner()
-        );
+        MessagingReceipt memory receipt =
+            _lzSend(dstEid, encodeMessage(messageType, message, extraOptions), options_, fee, gasReceiver);
 
         emit Sent(dstEid, message, options_, extraOptions, receipt);
     }

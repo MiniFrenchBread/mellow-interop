@@ -361,4 +361,25 @@ contract SourceCore is Core {
             underlyingAsset.safeTransfer(recipient, assets);
         }
     }
+
+    function claimableRedeemsOf(address user, uint256[] calldata batchIds) external view returns (uint256 assets) {
+        address sender = msg.sender;
+        for (uint256 i = 0; i < batchIds.length; i++) {
+            Request storage redeem_ = _redeems[batchIds[i]];
+            if (redeem_.status != Status.COMPLETED) {
+                continue;
+            }
+            uint256 accountRequest = redeem_.accountRequest[sender];
+            if (accountRequest == 0) {
+                continue;
+            }
+            uint256 due = Math.mulDiv(redeem_.processed, redeem_.requested, accountRequest);
+            uint256 claimed = redeem_.accountClaimed[sender];
+            if (claimed >= due) {
+                continue;
+            }
+            uint256 leftover = due - claimed;
+            assets += leftover;
+        }
+    }
 }
