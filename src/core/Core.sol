@@ -8,8 +8,8 @@ abstract contract Core is ICore, Ownable {
     error InvalidMessageType();
     error Forbidden();
     error InvalidStatus();
-    error LimitOverflow();
-    error LimitUnderflow();
+    error LimitOverflow(uint256 targetValue, uint256 value);
+    error LimitUnderflow(uint256 targetValue, uint256 value);
 
     OwnedERC20 public immutable asset;
     IAdapter public adapter;
@@ -44,7 +44,14 @@ abstract contract Core is ICore, Ownable {
         bytes memory extraOptions,
         uint256 value
     ) internal {
-        adapter.sendMessage{value: value}(messageType, message, options, extraOptions);
+        bytes memory fullMessage = adapter.encodeMessage(messageType, message, extraOptions);
+        uint256 requiredValue = adapter.quoteMessage(messageType, fullMessage, options);
+
+        if (requiredValue > value) {
+            revert LimitOverflow(requiredValue, value);
+        }
+
+        adapter.sendMessage{value: value}(messageType, fullMessage, options, extraOptions);
     }
 
     receive() external payable {}

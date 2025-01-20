@@ -5,16 +5,20 @@ pragma solidity 0.8.25;
 import "../interfaces/ILayerZeroAdapter.sol";
 
 contract LayerZeroAdapter is OApp, OAppOptionsType3, ILayerZeroAdapter {
-    ICore public immutable core;
-    uint32 public immutable dstEid;
+    ICore public core;
+    uint32 public dstEid;
     address public gasReceiver;
 
-    constructor(address endpoint_, address delegate_, address core_, uint32 dstEid_)
-        OApp(endpoint_, delegate_)
-        Ownable(delegate_)
-    {
+    constructor(address endpoint_, address delegate_) OApp(endpoint_, delegate_) Ownable(delegate_) {}
+
+    function setCore(address core_) external onlyOwner {
+        require(address(core) == address(0), "LayerZeroAdapter: core already set");
         core = ICore(core_);
-        dstEid = dstEid_;
+    }
+
+    function setDstEid(uint32 eid) external onlyOwner {
+        require(dstEid == 0, "LayerZeroAdapter: dstEid already set");
+        dstEid = eid;
     }
 
     function setGasReceiver(address receiver) external onlyOwner {
@@ -29,8 +33,21 @@ contract LayerZeroAdapter is OApp, OAppOptionsType3, ILayerZeroAdapter {
         return abi.encode(messageType, message, extraOptions);
     }
 
-    function decodeMessage(bytes calldata message) public pure returns (MessageType, bytes memory, bytes memory) {
-        return abi.decode(message, (MessageType, bytes, bytes));
+    function decodeMessage(bytes calldata fullMessage)
+        public
+        pure
+        returns (MessageType messageType, bytes memory message, bytes memory extraOptions)
+    {
+        (messageType, message, extraOptions) = abi.decode(fullMessage, (MessageType, bytes, bytes));
+    }
+
+    function quoteMessage(MessageType messageType, bytes calldata message, bytes calldata options)
+        public
+        view
+        returns (uint256 nativeFee)
+    {
+        bytes memory options_ = combineOptions(dstEid, uint16(uint256(messageType)), options);
+        return _quote(dstEid, message, options_, false).nativeFee;
     }
 
     function sendMessage(
@@ -45,13 +62,7 @@ contract LayerZeroAdapter is OApp, OAppOptionsType3, ILayerZeroAdapter {
 
         bytes memory options_ = combineOptions(dstEid, uint16(uint256(messageType)), options);
 
-        MessagingFee memory fee = _quote(dstEid, message, options_, false);
-
-        if (fee.nativeFee > msg.value) {
-            revert LimitUnderflow();
-        }
-        MessagingReceipt memory receipt =
-            _lzSend(dstEid, encodeMessage(messageType, message, extraOptions), options_, fee, gasReceiver);
+        MessagingReceipt memory receipt = _lzSend(dstEid, message, options_, MessagingFee(msg.value, 0), gasReceiver);
 
         emit Sent(dstEid, message, options_, extraOptions, receipt);
     }
@@ -64,6 +75,6 @@ contract LayerZeroAdapter is OApp, OAppOptionsType3, ILayerZeroAdapter {
         bytes calldata /* _extraData */
     ) internal override {
         (MessageType messageType, bytes memory message, bytes memory extraOptions) = decodeMessage(_message);
-        ICore(core).receiveMessage(messageType, message, extraOptions);
+        ICore(core).receiveMessage{value: msg.value}(messageType, message, extraOptions);
     }
 }

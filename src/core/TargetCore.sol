@@ -8,7 +8,7 @@ import "./Core.sol";
 contract TargetCore is Core {
     using SafeERC20 for IERC20;
 
-    address public immutable vault;
+    address public vault;
     RedeemClaimer public immutable claimerSingleton;
 
     address public burner;
@@ -25,11 +25,15 @@ contract TargetCore is Core {
     mapping(uint256 index => uint256 assets) public slashing;
     uint256 public slashings = 0;
 
-    constructor(address owner_, address vault_, address claimer_, string memory name_, string memory symbol_)
+    constructor(address owner_, address claimer_, string memory name_, string memory symbol_)
         Core(owner_, name_, symbol_)
     {
+        claimerSingleton = new RedeemClaimer(claimer_, address(this), address(asset));
+    }
+
+    function setVault(address vault_) external onlyOwner {
+        require(vault == address(0), "TargetCore: vault already set");
         vault = vault_;
-        claimerSingleton = new RedeemClaimer(claimer_, address(this));
     }
 
     function setBurner(address burner_) external onlyOwner {
