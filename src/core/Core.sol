@@ -4,12 +4,12 @@ pragma solidity 0.8.25;
 
 import "../interfaces/ICore.sol";
 
-abstract contract Core is ICore, Ownable {
+abstract contract Core is ICore, Ownable, Initializable {
     error InvalidMessageType();
     error Forbidden();
     error InvalidStatus();
-    error LimitOverflow();
-    error LimitUnderflow();
+    error LimitOverflow(uint256 targetValue, uint256 value);
+    error LimitUnderflow(uint256 targetValue, uint256 value);
 
     OwnedERC20 public immutable asset;
     IAdapter public adapter;
@@ -18,9 +18,11 @@ abstract contract Core is ICore, Ownable {
         asset = new OwnedERC20(name_, symbol_, address(this));
     }
 
-    function setAdapter(address newAdapter) external onlyOwner {
-        adapter = IAdapter(newAdapter);
+    function setAdapter(address adapter_) external onlyOwner {
+        _setAdapter(adapter_);
     }
+
+    receive() external payable {}
 
     function receiveMessage(IAdapter.MessageType messageType, bytes calldata message, bytes calldata extraOptions)
         external
@@ -44,8 +46,21 @@ abstract contract Core is ICore, Ownable {
         bytes memory extraOptions,
         uint256 value
     ) internal {
-        adapter.sendMessage{value: value}(messageType, message, options, extraOptions);
+        bytes memory fullMessage = adapter.encodeMessage(messageType, message, extraOptions);
+        uint256 requiredValue = adapter.quoteMessage(messageType, fullMessage, options);
+
+        if (requiredValue > value) {
+            revert LimitOverflow(requiredValue, value);
+        }
+
+        adapter.sendMessage{value: requiredValue}(messageType, fullMessage, options, extraOptions);
     }
 
-    receive() external payable {}
+    function __init_Core(address adapter_) internal onlyInitializing {
+        _setAdapter(adapter_);
+    }
+
+    function _setAdapter(address adapter_) internal {
+        adapter = IAdapter(adapter_);
+    }
 }

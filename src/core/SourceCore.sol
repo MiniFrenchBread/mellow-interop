@@ -60,6 +60,19 @@ contract SourceCore is Core {
         underlyingAsset = IERC20(underlying);
     }
 
+    function initialize(
+        address burner_,
+        uint256 limit_,
+        bool depositWhitelistStatus_,
+        bool depositPause_,
+        bool redeemPause_,
+        uint256 pushDelay_,
+        address adapter_
+    ) external initializer {
+        __init_Core(adapter_);
+        __init_SourceCore(burner_, limit_, depositWhitelistStatus_, depositPause_, redeemPause_, pushDelay_);
+    }
+
     function setBurner(address burner_) external onlyOwner {
         burner = burner_;
     }
@@ -153,10 +166,11 @@ contract SourceCore is Core {
             revert Forbidden();
         }
         if (assets + underlyingAsset.balanceOf(address(this)) > limit) {
-            revert LimitOverflow();
+            revert LimitOverflow(limit, assets + underlyingAsset.balanceOf(address(this)));
         }
+
         if (msg.value < minDepositValue) {
-            revert LimitUnderflow();
+            revert LimitUnderflow(minDepositValue, msg.value);
         }
         underlyingAsset.safeTransferFrom(msg.sender, address(this), assets);
 
@@ -195,7 +209,7 @@ contract SourceCore is Core {
         }
         uint256 depositValue = deposit_.value + msg.value;
         if (depositValue < minPushDepositBatchValue) {
-            revert LimitUnderflow();
+            revert LimitUnderflow(minPushDepositBatchValue, depositValue);
         }
         depositBatches++;
         deposit_.status = Status.PENDING;
@@ -222,7 +236,7 @@ contract SourceCore is Core {
         }
         uint256 depositValue = msg.value;
         if (depositValue < minPushDepositBatchValue) {
-            revert LimitUnderflow();
+            revert LimitUnderflow(minPushDepositBatchValue, depositValue);
         }
         pushDepositsTimestamp[batchId] = block.timestamp;
         _sendMessage(
@@ -264,7 +278,7 @@ contract SourceCore is Core {
             revert Forbidden();
         }
         if (msg.value < minRedeemValue) {
-            revert LimitUnderflow();
+            revert LimitUnderflow(minRedeemValue, msg.value);
         }
         asset.burn(msg.sender, shares);
         batchId = redeemBatches;
@@ -299,7 +313,7 @@ contract SourceCore is Core {
         }
         uint256 redeemValue = redeem_.value + msg.value;
         if (redeemValue < minPushRedeemBatchValue) {
-            revert LimitUnderflow();
+            revert LimitUnderflow(minPushRedeemBatchValue, redeemValue);
         }
         redeemBatches++;
         redeem_.status = Status.PENDING;
@@ -325,7 +339,7 @@ contract SourceCore is Core {
         }
         uint256 redeemValue = msg.value;
         if (redeemValue < minPushDepositBatchValue) {
-            revert LimitUnderflow();
+            revert LimitUnderflow(minPushDepositBatchValue, redeemValue);
         }
         pushRedeemsTimestamp[batchId] = block.timestamp;
         _sendMessage(
@@ -380,5 +394,21 @@ contract SourceCore is Core {
             uint256 leftover = due - claimed;
             assets += leftover;
         }
+    }
+
+    function __init_SourceCore(
+        address burner_,
+        uint256 limit_,
+        bool depositWhitelistStatus_,
+        bool depositPause_,
+        bool redeemPause_,
+        uint256 pushDelay_
+    ) internal onlyInitializing {
+        burner = burner_;
+        limit = limit_;
+        isDepositWhitelist = depositWhitelistStatus_;
+        depositPause = depositPause_;
+        redeemPause = redeemPause_;
+        pushDelay = pushDelay_;
     }
 }
