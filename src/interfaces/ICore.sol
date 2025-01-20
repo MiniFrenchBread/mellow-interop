@@ -4,6 +4,8 @@ pragma solidity 0.8.25;
 
 import "../utils/OwnedERC20.sol";
 import "./IAdapter.sol";
+
+import "@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol";
 import "@openzeppelin/contracts/access/Ownable.sol";
 import "@openzeppelin/contracts/interfaces/IERC4626.sol";
 import "@openzeppelin/contracts/proxy/Clones.sol";

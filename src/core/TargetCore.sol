@@ -31,6 +31,11 @@ contract TargetCore is Core {
         claimerSingleton = new RedeemClaimer(claimer_, address(this), address(asset));
     }
 
+    function initialize(address vault_, address burner_, address adapter_) external initializer {
+        __init_Core(adapter_);
+        __init_TargetCore(vault_, burner_);
+    }
+
     function setVault(address vault_) external onlyOwner {
         require(vault == address(0), "TargetCore: vault already set");
         vault = vault_;
@@ -136,5 +141,10 @@ contract TargetCore is Core {
             revert Forbidden();
         }
         _sendMessage(IAdapter.MessageType.SLASHING, abi.encode(index, assets), options, new bytes(0), msg.value);
+    }
+
+    function __init_TargetCore(address vault_, address burner_) internal onlyInitializing {
+        vault = vault_;
+        burner = burner_;
     }
 }

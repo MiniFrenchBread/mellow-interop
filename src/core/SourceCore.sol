@@ -60,6 +60,19 @@ contract SourceCore is Core {
         underlyingAsset = IERC20(underlying);
     }
 
+    function initialize(
+        address burner_,
+        uint256 limit_,
+        bool depositWhitelistStatus_,
+        bool depositPause_,
+        bool redeemPause_,
+        uint256 pushDelay_,
+        address adapter_
+    ) external initializer {
+        __init_Core(adapter_);
+        __init_SourceCore(burner_, limit_, depositWhitelistStatus_, depositPause_, redeemPause_, pushDelay_);
+    }
+
     function setBurner(address burner_) external onlyOwner {
         burner = burner_;
     }
@@ -381,5 +394,21 @@ contract SourceCore is Core {
             uint256 leftover = due - claimed;
             assets += leftover;
         }
+    }
+
+    function __init_SourceCore(
+        address burner_,
+        uint256 limit_,
+        bool depositWhitelistStatus_,
+        bool depositPause_,
+        bool redeemPause_,
+        uint256 pushDelay_
+    ) internal onlyInitializing {
+        burner = burner_;
+        limit = limit_;
+        isDepositWhitelist = depositWhitelistStatus_;
+        depositPause = depositPause_;
+        redeemPause = redeemPause_;
+        pushDelay = pushDelay_;
     }
 }

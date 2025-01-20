@@ -18,7 +18,7 @@ abstract contract Core is ICore, Ownable, Initializable {
         asset = new OwnedERC20(name_, symbol_, address(this));
     }
 
-    function setAdapter(address newAdapter) external onlyOwner {
+    function setAdapter(address adapter_) external onlyOwner {
         _setAdapter(adapter_);
     }
 

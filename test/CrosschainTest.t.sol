@@ -52,32 +52,11 @@ contract CrosschainTest is TestHelperOz5 {
         targetAdapter.setGasReceiver(targetAdapter.owner());
         vm.stopPrank();
 
-        vm.startPrank(targetCore.owner());
-        targetCore.setAdapter(address(targetAdapter));
-        targetCore.setBurner(vm.createWallet("burner").addr);
-        targetCore.setVault(address(vault));
-        vm.stopPrank();
-
-        vm.startPrank(sourceCore.owner());
-        sourceCore.setLimit(100 ether);
-        sourceCore.setAdapter(address(sourceAdapter));
-        // sourceCore.setValues(0.001 ether, 0.001 ether, 0.001 ether, 0.001 ether);
-        vm.stopPrank();
+        targetCore.initialize(address(vault), vm.createWallet("burner").addr, address(targetAdapter));
+        sourceCore.initialize(address(0), 100 ether, false, false, false, 0, address(sourceAdapter));
     }
 
-    /// @notice Tests the send and multi-compose functionality of MyOApp.
-    /// @dev Simulates message passing from A -> B and checks for data integrity.
-    function testSend() public {
-        // Setup variable for data values before calling send().
-        // string memory dataBefore = aMyOApp.data();
-        // Generates 1 lzReceive execution option via the OptionsBuilder library.
-        // STEP 0: Estimating message gas fees via the quote function.
-        // bytes memory options = OptionsBuilder.newOptions().addExecutorLzReceiveOption(150000, 0);
-        // MessagingFee memory fee = aMyOApp.quote(bEid, "test message", options, false);
-
-        // STEP 1: Sending a message via the _lzSend() method.
-        // MessagingReceipt memory receipt = aMyOApp.send{value: fee.nativeFee}(bEid, "test message", options);
-
+    function testPushDeposits() public {
         address user = vm.createWallet("user").addr;
         vm.startPrank(user);
         address wsteth = Constants.WSTETH();
@@ -100,7 +79,6 @@ contract CrosschainTest is TestHelperOz5 {
             IAdapter.MessageType.DEPOSIT, abi.encode(type(uint256).max, type(uint256).max), extraOptions
         );
 
-        uint256 sourceFee = sourceAdapter.quoteMessage(IAdapter.MessageType.DEPOSIT, fullMessage, options);
         sourceCore.pushDepositBatch{value: 1 ether}(batchId, options, extraOptions);
         vm.stopPrank();
 
@@ -109,6 +87,59 @@ contract CrosschainTest is TestHelperOz5 {
 
         vm.startPrank(user);
         sourceCore.claimDeposits(new uint256[](1), user);
+        vm.stopPrank();
+    }
+
+    function testPushRedeems() public {
+        address user = vm.createWallet("user").addr;
+        vm.startPrank(user);
+        address wsteth = Constants.WSTETH();
+        {
+            deal(wsteth, user, 1 ether);
+            deal(user, 2 ether);
+            IERC20(wsteth).approve(address(sourceCore), 1 ether);
+            uint256 batchId = sourceCore.deposit{value: 0.001 ether}(1 ether, user);
+
+            bytes memory extraOptions = OptionsBuilder.newOptions().addExecutorLzReceiveOption(1e6, 0);
+            uint256 targetFee = targetAdapter.quoteMessage(
+                IAdapter.MessageType.DEPOSIT,
+                targetAdapter.encodeMessage(
+                    IAdapter.MessageType.DEPOSIT, abi.encode(type(uint256).max, type(uint256).max), new bytes(0)
+                ),
+                extraOptions
+            );
+
+            bytes memory options = OptionsBuilder.newOptions().addExecutorLzReceiveOption(1e6, uint128(targetFee));
+            bytes memory fullMessage = sourceAdapter.encodeMessage(
+                IAdapter.MessageType.DEPOSIT, abi.encode(type(uint256).max, type(uint256).max), extraOptions
+            );
+
+            sourceCore.pushDepositBatch{value: 1 ether}(batchId, options, extraOptions);
+            vm.stopPrank();
+
+            verifyPackets(targetEid, addressToBytes32(address(targetAdapter)));
+            verifyPackets(sourceEid, addressToBytes32(address(sourceAdapter)));
+        }
+
+        vm.startPrank(user);
+        sourceCore.claimDeposits(new uint256[](1), user);
+
+        sourceCore.redeem(1 ether, user);
+        {
+            deal(user, 2 ether);
+            bytes memory options = OptionsBuilder.newOptions().addExecutorLzReceiveOption(1e6, 0);
+            sourceCore.pushRedeemBatch{value: 1 ether}(0, options, new bytes(0));
+
+            verifyPackets(targetEid, addressToBytes32(address(targetAdapter)));
+
+            targetCore.claim{value: 1 ether}(
+                0, abi.encode(new uint256[](0), new uint256[][](0), type(uint256).max), options
+            );
+
+            verifyPackets(sourceEid, addressToBytes32(address(sourceAdapter)));
+
+            sourceCore.claimRedeems(new uint256[](1), user);
+        }
         vm.stopPrank();
     }
 }
