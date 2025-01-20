@@ -4,7 +4,7 @@ pragma solidity 0.8.25;
 
 import "../interfaces/ICore.sol";
 
-abstract contract Core is ICore, Ownable {
+abstract contract Core is ICore, Ownable, Initializable {
     error InvalidMessageType();
     error Forbidden();
     error InvalidStatus();
@@ -19,8 +19,10 @@ abstract contract Core is ICore, Ownable {
     }
 
     function setAdapter(address newAdapter) external onlyOwner {
-        adapter = IAdapter(newAdapter);
+        _setAdapter(adapter_);
     }
+
+    receive() external payable {}
 
     function receiveMessage(IAdapter.MessageType messageType, bytes calldata message, bytes calldata extraOptions)
         external
@@ -51,8 +53,14 @@ abstract contract Core is ICore, Ownable {
             revert LimitOverflow(requiredValue, value);
         }
 
-        adapter.sendMessage{value: value}(messageType, fullMessage, options, extraOptions);
+        adapter.sendMessage{value: requiredValue}(messageType, fullMessage, options, extraOptions);
     }
 
-    receive() external payable {}
+    function __init_Core(address adapter_) internal onlyInitializing {
+        _setAdapter(adapter_);
+    }
+
+    function _setAdapter(address adapter_) internal {
+        adapter = IAdapter(adapter_);
+    }
 }
