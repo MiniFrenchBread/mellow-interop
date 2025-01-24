@@ -308,6 +308,9 @@ contract SourceCore is Core {
         if (redeem_.status != Status.OPEN) {
             revert InvalidStatus();
         }
+        if (batchId != 0 && _redeems[batchId - 1].status != Status.COMPLETED) {
+            revert InvalidStatus();
+        }
         if (redeem_.requested == 0) {
             revert Forbidden();
         }

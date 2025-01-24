@@ -64,6 +64,7 @@ contract TargetCore is Core {
                     new bytes(0),
                     msg.value
                 );
+                return;
             }
 
             asset.mint(address(this), amount);
