@@ -141,7 +141,7 @@ contract TargetCore is Core {
         if (assets == 0) {
             revert Forbidden();
         }
-        _sendMessage(IAdapter.MessageType.SLASHING, abi.encode(index, assets), options, new bytes(0), msg.value);
+        _sendMessage(IAdapter.MessageType.RETRY_SLASHING, abi.encode(index, assets), options, new bytes(0), msg.value);
     }
 
     function __init_TargetCore(address vault_, address burner_) internal onlyInitializing {

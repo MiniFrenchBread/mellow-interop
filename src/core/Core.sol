@@ -22,8 +22,6 @@ abstract contract Core is ICore, Ownable, Initializable {
         _setAdapter(adapter_);
     }
 
-    receive() external payable {}
-
     function receiveMessage(IAdapter.MessageType messageType, bytes calldata message, bytes calldata extraOptions)
         external
         payable
@@ -54,6 +52,9 @@ abstract contract Core is ICore, Ownable, Initializable {
         }
 
         adapter.sendMessage{value: requiredValue}(messageType, fullMessage, options, extraOptions);
+        if (requiredValue < value) {
+            Address.sendValue(payable(adapter.gasReceiver()), value - requiredValue);
+        }
     }
 
     function __init_Core(address adapter_) internal onlyInitializing {

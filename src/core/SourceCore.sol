@@ -181,18 +181,10 @@ contract SourceCore is Core {
             deposit_.requested = assets;
             deposit_.accountRequest[receiver] = assets;
             deposit_.value = msg.value;
-        } else if (deposit_.status == Status.OPEN) {
+        } else {
             deposit_.requested += assets;
             deposit_.accountRequest[receiver] += assets;
             deposit_.value += msg.value;
-        } else {
-            batchId++;
-            depositBatches = batchId;
-            deposit_ = _deposits[batchId];
-            deposit_.status = Status.OPEN;
-            deposit_.requested = assets;
-            deposit_.accountRequest[receiver] = assets;
-            deposit_.value = msg.value;
         }
     }
 
@@ -259,7 +251,7 @@ contract SourceCore is Core {
             if (accountRequest == 0) {
                 continue;
             }
-            uint256 due = Math.mulDiv(deposit_.processed, deposit_.requested, accountRequest);
+            uint256 due = Math.mulDiv(deposit_.processed, accountRequest, deposit_.requested);
             uint256 claimed = deposit_.accountClaimed[sender];
             if (claimed >= due) {
                 continue;
@@ -270,6 +262,26 @@ contract SourceCore is Core {
         }
         if (shares != 0) {
             asset.mint(recipient, shares);
+        }
+    }
+
+    function claimableDepositsOf(address user, uint256[] calldata batchIds) external view returns (uint256 assets) {
+        for (uint256 i = 0; i < batchIds.length; i++) {
+            Request storage deposit_ = _deposits[batchIds[i]];
+            if (deposit_.status != Status.COMPLETED) {
+                continue;
+            }
+            uint256 accountRequest = deposit_.accountRequest[user];
+            if (accountRequest == 0) {
+                continue;
+            }
+            uint256 due = Math.mulDiv(deposit_.processed, accountRequest, deposit_.requested);
+            uint256 claimed = deposit_.accountClaimed[user];
+            if (claimed >= due) {
+                continue;
+            }
+            uint256 leftover = due - claimed;
+            assets += leftover;
         }
     }
 
@@ -292,14 +304,6 @@ contract SourceCore is Core {
             redeem_.requested += shares;
             redeem_.accountRequest[receiver] += shares;
             redeem_.value += msg.value;
-        } else {
-            batchId++;
-            redeemBatches = batchId;
-            redeem_ = _redeems[batchId];
-            redeem_.status = Status.OPEN;
-            redeem_.requested = shares;
-            redeem_.accountRequest[receiver] = shares;
-            redeem_.value = msg.value;
         }
     }
 
@@ -321,6 +325,7 @@ contract SourceCore is Core {
         redeemBatches++;
         redeem_.status = Status.PENDING;
         redeem_.value = 0;
+        pushRedeemsTimestamp[batchId] = block.timestamp;
         _sendMessage(
             IAdapter.MessageType.REDEEM, abi.encode(batchId, redeem_.requested), options, extraOptions, redeemValue
         );
@@ -365,7 +370,7 @@ contract SourceCore is Core {
             if (accountRequest == 0) {
                 continue;
             }
-            uint256 due = Math.mulDiv(redeem_.processed, redeem_.requested, accountRequest);
+            uint256 due = Math.mulDiv(redeem_.processed, accountRequest, redeem_.requested);
             uint256 claimed = redeem_.accountClaimed[sender];
             if (claimed >= due) {
                 continue;
@@ -389,7 +394,7 @@ contract SourceCore is Core {
             if (accountRequest == 0) {
                 continue;
             }
-            uint256 due = Math.mulDiv(redeem_.processed, redeem_.requested, accountRequest);
+            uint256 due = Math.mulDiv(redeem_.processed, accountRequest, redeem_.requested);
             uint256 claimed = redeem_.accountClaimed[user];
             if (claimed >= due) {
                 continue;

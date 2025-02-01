@@ -18,6 +18,8 @@ interface IAdapter {
 
     function core() external view returns (ICore);
 
+    function gasReceiver() external view returns (address);
+
     function sendMessage(
         MessageType messageType,
         bytes calldata message,
