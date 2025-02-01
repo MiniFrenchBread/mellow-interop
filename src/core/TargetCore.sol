@@ -70,11 +70,11 @@ contract TargetCore is Core {
             asset.mint(address(this), amount);
             IERC20(asset).safeIncreaseAllowance(vault, amount);
             uint256 shares = IERC4626(vault).deposit(amount, address(this));
+            isDepositBatchCompleted[batchId] = true;
+            depositBatchShares[batchId] = shares;
             _sendMessage(
                 IAdapter.MessageType.DEPOSIT, abi.encode(batchId, shares), extraOptions, new bytes(0), msg.value
             );
-            isDepositBatchCompleted[batchId] = true;
-            depositBatchShares[batchId] = shares;
         } else if (messageType == IAdapter.MessageType.REDEEM || messageType == IAdapter.MessageType.RETRY_REDEEM) {
             if (isRedeemBatchCompleted[batchId]) {
                 if (messageType != IAdapter.MessageType.RETRY_REDEEM) {
@@ -84,8 +84,8 @@ contract TargetCore is Core {
             }
             address claimer = Clones.cloneDeterministic(address(claimerSingleton), bytes32(batchId));
             claimers[batchId] = address(claimer);
-            IERC4626(vault).redeem(amount, address(claimer), address(this));
             isRedeemBatchCompleted[batchId] = true;
+            IERC4626(vault).redeem(amount, address(claimer), address(this));
         } else {
             revert InvalidMessageType();
         }
