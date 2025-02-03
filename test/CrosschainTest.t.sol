@@ -54,6 +54,33 @@ contract CrosschainTest is TestHelperOz5 {
 
         targetCore.initialize(address(vault), vm.createWallet("burner").addr, address(targetAdapter));
         sourceCore.initialize(address(0), 100 ether, false, false, false, 0, address(sourceAdapter));
+        {
+            vm.startPrank(targetAdapter.owner());
+            EnforcedOptionParam[] memory params = new EnforcedOptionParam[](uint256(type(IAdapter.MessageType).max) + 1);
+            for (uint256 i = 0; i < params.length; i++) {
+                params[i] = EnforcedOptionParam({
+                    eid: targetAdapter.dstEid(),
+                    msgType: uint16(i),
+                    options: OptionsBuilder.newOptions().addExecutorLzReceiveOption(1e6, 0)
+                });
+            }
+            targetAdapter.setEnforcedOptions(params);
+            vm.stopPrank();
+        }
+
+        {
+            vm.startPrank(sourceAdapter.owner());
+            EnforcedOptionParam[] memory params = new EnforcedOptionParam[](uint256(type(IAdapter.MessageType).max) + 1);
+            for (uint256 i = 0; i < params.length; i++) {
+                params[i] = EnforcedOptionParam({
+                    eid: sourceAdapter.dstEid(),
+                    msgType: uint16(i),
+                    options: OptionsBuilder.newOptions().addExecutorLzReceiveOption(1e6, 0)
+                });
+            }
+            sourceAdapter.setEnforcedOptions(params);
+            vm.stopPrank();
+        }
     }
 
     function testPushDeposits() public {
@@ -65,21 +92,17 @@ contract CrosschainTest is TestHelperOz5 {
         IERC20(wsteth).approve(address(sourceCore), 1 ether);
         uint256 batchId = sourceCore.deposit{value: 0.001 ether}(1 ether, user);
 
-        bytes memory extraOptions = OptionsBuilder.newOptions().addExecutorLzReceiveOption(1e6, 0);
         uint256 targetFee = targetAdapter.quoteMessage(
             IAdapter.MessageType.DEPOSIT,
-            targetAdapter.encodeMessage(
-                IAdapter.MessageType.DEPOSIT, abi.encode(type(uint256).max, type(uint256).max), new bytes(0)
-            ),
-            extraOptions
+            targetAdapter.encodeMessage(IAdapter.MessageType.DEPOSIT, abi.encode(type(uint256).max, type(uint256).max)),
+            new bytes(0)
         );
 
         bytes memory options = OptionsBuilder.newOptions().addExecutorLzReceiveOption(1e6, uint128(targetFee));
-        bytes memory fullMessage = sourceAdapter.encodeMessage(
-            IAdapter.MessageType.DEPOSIT, abi.encode(type(uint256).max, type(uint256).max), extraOptions
-        );
+        bytes memory fullMessage =
+            sourceAdapter.encodeMessage(IAdapter.MessageType.DEPOSIT, abi.encode(type(uint256).max, type(uint256).max));
 
-        sourceCore.pushDepositBatch{value: 1 ether}(batchId, options, extraOptions);
+        sourceCore.pushDepositBatch{value: 1 ether}(batchId, new bytes(0));
         vm.stopPrank();
 
         verifyPackets(targetEid, addressToBytes32(address(targetAdapter)));
@@ -100,24 +123,29 @@ contract CrosschainTest is TestHelperOz5 {
             IERC20(wsteth).approve(address(sourceCore), 1 ether);
             uint256 batchId = sourceCore.deposit{value: 0.001 ether}(1 ether, user);
 
-            bytes memory extraOptions = OptionsBuilder.newOptions().addExecutorLzReceiveOption(1e6, 0);
             uint256 targetFee = targetAdapter.quoteMessage(
                 IAdapter.MessageType.DEPOSIT,
                 targetAdapter.encodeMessage(
-                    IAdapter.MessageType.DEPOSIT, abi.encode(type(uint256).max, type(uint256).max), new bytes(0)
+                    IAdapter.MessageType.DEPOSIT, abi.encode(type(uint256).max, type(uint256).max)
                 ),
-                extraOptions
+                new bytes(0)
             );
 
             bytes memory options = OptionsBuilder.newOptions().addExecutorLzReceiveOption(1e6, uint128(targetFee));
             bytes memory fullMessage = sourceAdapter.encodeMessage(
-                IAdapter.MessageType.DEPOSIT, abi.encode(type(uint256).max, type(uint256).max), extraOptions
+                IAdapter.MessageType.DEPOSIT, abi.encode(type(uint256).max, type(uint256).max)
             );
 
-            sourceCore.pushDepositBatch{value: 1 ether}(batchId, options, extraOptions);
+            sourceCore.pushDepositBatch{value: 1 ether}(batchId, new bytes(0));
             vm.stopPrank();
 
             verifyPackets(targetEid, addressToBytes32(address(targetAdapter)));
+
+            vm.startPrank(user);
+            deal(user, 1 ether);
+            targetCore.pushDeposit{value: 1 ether}(batchId, new bytes(0));
+
+            vm.stopPrank();
             verifyPackets(sourceEid, addressToBytes32(address(sourceAdapter)));
         }
 
@@ -127,13 +155,12 @@ contract CrosschainTest is TestHelperOz5 {
         sourceCore.redeem(1 ether, user);
         {
             deal(user, 2 ether);
-            bytes memory options = OptionsBuilder.newOptions().addExecutorLzReceiveOption(1e6, 0);
-            sourceCore.pushRedeemBatch{value: 1 ether}(0, options, new bytes(0));
+            sourceCore.pushRedeemBatch{value: 1 ether}(0, new bytes(0));
 
             verifyPackets(targetEid, addressToBytes32(address(targetAdapter)));
 
             targetCore.claim{value: 1 ether}(
-                0, abi.encode(new uint256[](0), new uint256[][](0), type(uint256).max), options
+                0, abi.encode(new uint256[](0), new uint256[][](0), type(uint256).max), new bytes(0)
             );
 
             verifyPackets(sourceEid, addressToBytes32(address(sourceAdapter)));

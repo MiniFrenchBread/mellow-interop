@@ -113,11 +113,7 @@ contract SourceCore is Core {
         minPushRedeemBatchValue = minPushRedeemBatchValue_;
     }
 
-    function _receiveMessage(
-        IAdapter.MessageType messageType,
-        bytes calldata message,
-        bytes calldata /* extraOptions */
-    ) internal virtual override {
+    function _receiveMessage(IAdapter.MessageType messageType, bytes calldata message) internal virtual override {
         if (messageType == IAdapter.MessageType.DEPOSIT) {
             (uint256 batchId, uint256 amount) = abi.decode(message, (uint256, uint256));
             Request storage deposit_ = _deposits[batchId];
@@ -188,7 +184,7 @@ contract SourceCore is Core {
         }
     }
 
-    function pushDepositBatch(uint256 batchId, bytes calldata options, bytes calldata extraOptions) external payable {
+    function pushDepositBatch(uint256 batchId, bytes calldata options) external payable {
         Request storage deposit_ = _deposits[batchId];
         if (deposit_.status != Status.OPEN) {
             revert InvalidStatus();
@@ -207,15 +203,10 @@ contract SourceCore is Core {
         deposit_.status = Status.PENDING;
         deposit_.value = 0;
         pushDepositsTimestamp[batchId] = block.timestamp;
-        _sendMessage(
-            IAdapter.MessageType.DEPOSIT, abi.encode(batchId, deposit_.requested), options, extraOptions, depositValue
-        );
+        _sendMessage(IAdapter.MessageType.DEPOSIT, abi.encode(batchId, deposit_.requested), options, depositValue);
     }
 
-    function retryPushDepositBatch(uint256 batchId, bytes calldata options, bytes calldata extraOptions)
-        external
-        payable
-    {
+    function retryPushDepositBatch(uint256 batchId, bytes calldata options) external payable {
         Request storage deposit_ = _deposits[batchId];
         if (deposit_.status != Status.PENDING) {
             revert InvalidStatus();
@@ -231,13 +222,7 @@ contract SourceCore is Core {
             revert LimitUnderflow(minPushDepositBatchValue, depositValue);
         }
         pushDepositsTimestamp[batchId] = block.timestamp;
-        _sendMessage(
-            IAdapter.MessageType.RETRY_DEPOSIT,
-            abi.encode(batchId, deposit_.requested),
-            options,
-            extraOptions,
-            depositValue
-        );
+        _sendMessage(IAdapter.MessageType.RETRY_DEPOSIT, abi.encode(batchId, deposit_.requested), options, depositValue);
     }
 
     function claimDeposits(uint256[] calldata batchIds, address recipient) external returns (uint256 shares) {
@@ -307,7 +292,7 @@ contract SourceCore is Core {
         }
     }
 
-    function pushRedeemBatch(uint256 batchId, bytes calldata options, bytes calldata extraOptions) external payable {
+    function pushRedeemBatch(uint256 batchId, bytes calldata options) external payable {
         Request storage redeem_ = _redeems[batchId];
         if (redeem_.status != Status.OPEN) {
             revert InvalidStatus();
@@ -326,15 +311,10 @@ contract SourceCore is Core {
         redeem_.status = Status.PENDING;
         redeem_.value = 0;
         pushRedeemsTimestamp[batchId] = block.timestamp;
-        _sendMessage(
-            IAdapter.MessageType.REDEEM, abi.encode(batchId, redeem_.requested), options, extraOptions, redeemValue
-        );
+        _sendMessage(IAdapter.MessageType.REDEEM, abi.encode(batchId, redeem_.requested), options, redeemValue);
     }
 
-    function retryPushRedeemBatch(uint256 batchId, bytes calldata options, bytes calldata extraOptions)
-        external
-        payable
-    {
+    function retryPushRedeemBatch(uint256 batchId, bytes calldata options) external payable {
         Request storage redeem_ = _redeems[batchId];
         if (redeem_.status != Status.PENDING) {
             revert InvalidStatus();
@@ -346,17 +326,11 @@ contract SourceCore is Core {
             revert Forbidden();
         }
         uint256 redeemValue = msg.value;
-        if (redeemValue < minPushDepositBatchValue) {
-            revert LimitUnderflow(minPushDepositBatchValue, redeemValue);
+        if (redeemValue < minPushRedeemBatchValue) {
+            revert LimitUnderflow(minPushRedeemBatchValue, redeemValue);
         }
         pushRedeemsTimestamp[batchId] = block.timestamp;
-        _sendMessage(
-            IAdapter.MessageType.RETRY_REDEEM,
-            abi.encode(batchId, redeem_.requested),
-            options,
-            extraOptions,
-            redeemValue
-        );
+        _sendMessage(IAdapter.MessageType.RETRY_REDEEM, abi.encode(batchId, redeem_.requested), options, redeemValue);
     }
 
     function claimRedeems(uint256[] calldata batchIds, address recipient) external returns (uint256 assets) {

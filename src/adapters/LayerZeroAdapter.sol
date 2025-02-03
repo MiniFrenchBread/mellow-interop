@@ -25,20 +25,16 @@ contract LayerZeroAdapter is OApp, OAppOptionsType3, ILayerZeroAdapter {
         gasReceiver = receiver;
     }
 
-    function encodeMessage(MessageType messageType, bytes calldata message, bytes calldata extraOptions)
-        public
-        pure
-        returns (bytes memory)
-    {
-        return abi.encode(messageType, message, extraOptions);
+    function encodeMessage(MessageType messageType, bytes calldata message) public pure returns (bytes memory) {
+        return abi.encode(messageType, message);
     }
 
     function decodeMessage(bytes calldata fullMessage)
         public
         pure
-        returns (MessageType messageType, bytes memory message, bytes memory extraOptions)
+        returns (MessageType messageType, bytes memory message)
     {
-        (messageType, message, extraOptions) = abi.decode(fullMessage, (MessageType, bytes, bytes));
+        (messageType, message) = abi.decode(fullMessage, (MessageType, bytes));
     }
 
     function quoteMessage(MessageType messageType, bytes calldata message, bytes calldata options)
@@ -46,25 +42,32 @@ contract LayerZeroAdapter is OApp, OAppOptionsType3, ILayerZeroAdapter {
         view
         returns (uint256 nativeFee)
     {
+        if (options.length != 0) {
+            // only forced options are allowed
+            revert InvalidOptions(options);
+        }
         bytes memory options_ = combineOptions(dstEid, uint16(uint256(messageType)), options);
         return _quote(dstEid, message, options_, false).nativeFee;
     }
 
-    function sendMessage(
-        MessageType messageType,
-        bytes calldata message,
-        bytes calldata options,
-        bytes calldata extraOptions
-    ) external payable override {
+    function sendMessage(MessageType messageType, bytes calldata message, bytes calldata options)
+        external
+        payable
+        override
+    {
         if (msg.sender != address(core)) {
             revert Forbidden();
+        }
+        if (options.length != 0) {
+            // only forced options are allowed
+            revert InvalidOptions(options);
         }
 
         bytes memory options_ = combineOptions(dstEid, uint16(uint256(messageType)), options);
 
         MessagingReceipt memory receipt = _lzSend(dstEid, message, options_, MessagingFee(msg.value, 0), gasReceiver);
 
-        emit Sent(dstEid, message, options_, extraOptions, receipt);
+        emit Sent(dstEid, message, options_, receipt);
     }
 
     function _lzReceive(
@@ -74,7 +77,7 @@ contract LayerZeroAdapter is OApp, OAppOptionsType3, ILayerZeroAdapter {
         address, /* _executor */
         bytes calldata /* _extraData */
     ) internal override {
-        (MessageType messageType, bytes memory message, bytes memory extraOptions) = decodeMessage(_message);
-        ICore(core).receiveMessage{value: msg.value}(messageType, message, extraOptions);
+        (MessageType messageType, bytes memory message) = decodeMessage(_message);
+        ICore(core).receiveMessage{value: msg.value}(messageType, message);
     }
 }

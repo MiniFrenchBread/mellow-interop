@@ -22,36 +22,26 @@ abstract contract Core is ICore, Ownable, Initializable {
         _setAdapter(adapter_);
     }
 
-    function receiveMessage(IAdapter.MessageType messageType, bytes calldata message, bytes calldata extraOptions)
-        external
-        payable
-        virtual
-    {
+    function receiveMessage(IAdapter.MessageType messageType, bytes calldata message) external payable virtual {
         if (msg.sender != address(adapter)) {
             revert Forbidden();
         }
-        _receiveMessage(messageType, message, extraOptions);
+        _receiveMessage(messageType, message);
     }
 
-    function _receiveMessage(IAdapter.MessageType messageType, bytes calldata message, bytes calldata extraOptions)
-        internal
-        virtual;
+    function _receiveMessage(IAdapter.MessageType messageType, bytes calldata message) internal virtual;
 
-    function _sendMessage(
-        IAdapter.MessageType messageType,
-        bytes memory message,
-        bytes memory options,
-        bytes memory extraOptions,
-        uint256 value
-    ) internal {
-        bytes memory fullMessage = adapter.encodeMessage(messageType, message, extraOptions);
+    function _sendMessage(IAdapter.MessageType messageType, bytes memory message, bytes memory options, uint256 value)
+        internal
+    {
+        bytes memory fullMessage = adapter.encodeMessage(messageType, message);
         uint256 requiredValue = adapter.quoteMessage(messageType, fullMessage, options);
 
         if (requiredValue > value) {
             revert LimitOverflow(requiredValue, value);
         }
 
-        adapter.sendMessage{value: requiredValue}(messageType, fullMessage, options, extraOptions);
+        adapter.sendMessage{value: requiredValue}(messageType, fullMessage, options);
         if (requiredValue < value) {
             Address.sendValue(payable(adapter.gasReceiver()), value - requiredValue);
         }

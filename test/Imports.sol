@@ -7,7 +7,8 @@ import {Packet} from "@layerzerolabs/lz-evm-protocol-v2/contracts/interfaces/ISe
 import {MessagingFee} from "@layerzerolabs/oapp-evm/contracts/oapp/OApp.sol";
 import {MessagingReceipt} from "@layerzerolabs/oapp-evm/contracts/oapp/OAppSender.sol";
 import {OptionsBuilder} from "@layerzerolabs/oapp-evm/contracts/oapp/libs/OptionsBuilder.sol";
-// The unique path location of your OApp
+
+import {EnforcedOptionParam} from "@layerzerolabs/oapp-evm/contracts/oapp/interfaces/IOAppOptionsType3.sol";
 
 import {LayerZeroAdapter} from "../src/adapters/LayerZeroAdapter.sol";
 import {SourceCore} from "../src/core/SourceCore.sol";

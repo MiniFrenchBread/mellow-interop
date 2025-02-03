@@ -19,7 +19,5 @@ interface ICore {
 
     function setAdapter(address newAdapter) external;
 
-    function receiveMessage(IAdapter.MessageType messageType, bytes calldata message, bytes calldata extraOptions)
-        external
-        payable;
+    function receiveMessage(IAdapter.MessageType messageType, bytes calldata message) external payable;
 }

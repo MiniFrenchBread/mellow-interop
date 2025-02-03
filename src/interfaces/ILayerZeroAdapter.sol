@@ -20,5 +20,5 @@ interface ILayerZeroAdapter is IAdapter {
 
     function dstEid() external view returns (uint32);
 
-    event Sent(uint32 indexed dstEid, bytes message, bytes options, bytes extraOptions, MessagingReceipt receipt);
+    event Sent(uint32 indexed dstEid, bytes message, bytes options, MessagingReceipt receipt);
 }
