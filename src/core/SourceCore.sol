@@ -1,73 +1,62 @@
 // SPDX-License-Identifier: BUSL-1.1
 pragma solidity 0.8.25;
 
+import "../interfaces/ISourceCore.sol";
 import "./Core.sol";
 
-contract SourceCore is Core {
+contract SourceCore is ISourceCore, Core {
     using SafeERC20 for IERC20;
 
-    enum Status {
-        CLOSED,
-        OPEN,
-        PENDING,
-        COMPLETED
-    }
+    /// @inheritdoc ISourceCore
+    bytes32 public constant PAUSE_ROLE = keccak256("PAUSE_ROLE");
 
-    struct Request {
-        uint256 value;
-        uint256 requested;
-        uint256 processed;
-        uint256 claimed;
-        Status status;
-        mapping(address account => uint256) accountRequest;
-        mapping(address account => uint256) accountClaimed;
-    }
-
-    struct InitParams {
-        address admin;
-        address burner;
-        uint256 limit;
-        bool depositWhitelistStatus;
-        bool depositPause;
-        bool redeemPause;
-        uint256 pushDelay;
-        address adapter;
-        address underlyingAsset;
-        string name;
-        string symbol;
-    }
-
+    /// @inheritdoc ISourceCore
     IERC20 public underlyingAsset;
+    /// @inheritdoc ISourceCore
     address public burner;
 
-    uint256 public depositBatches;
-    uint256 public redeemBatches;
-
+    /// @inheritdoc ISourceCore
     uint256 public minDepositValue;
-    uint256 public minPushDepositBatchValue;
-    uint256 public minRedeemValue;
-    uint256 public minPushRedeemBatchValue;
 
+    /// @inheritdoc ISourceCore
+    uint256 public minRedeemValue;
+
+    /// @inheritdoc ISourceCore
     uint256 public limit;
 
+    /// @inheritdoc ISourceCore
     bool public isDepositWhitelist;
+    /// @inheritdoc ISourceCore
     mapping(address account => bool) public depositorWhitelistStatus;
 
+    /// @inheritdoc ISourceCore
     bool public depositPause;
+    /// @inheritdoc ISourceCore
     bool public redeemPause;
 
+    /// @inheritdoc ISourceCore
     uint256 public pushDelay = 4 hours;
 
+    /// @inheritdoc ISourceCore
+    uint256 public depositBatches;
+    /// @inheritdoc ISourceCore
     mapping(uint256 batchId => uint256) public pushDepositsTimestamp;
+
+    /// @inheritdoc ISourceCore
+    uint256 public redeemBatches;
+    /// @inheritdoc ISourceCore
     mapping(uint256 batchId => uint256) public pushRedeemsTimestamp;
+    /// @inheritdoc ISourceCore
+    mapping(uint256 batchId => mapping(uint256 index => bool)) public isClaimCompleted;
+    /// @inheritdoc ISourceCore
+    mapping(uint256 index => bool) public isSlashingCompleted;
+
     mapping(uint256 batchId => Request) private _deposits;
     mapping(uint256 batchId => Request) private _redeems;
 
-    mapping(uint256 batchId => mapping(uint256 index => bool)) public isClaimCompleted;
-    mapping(uint256 index => bool) public isSlashingCompleted;
-
     constructor(bytes32 name_, uint256 version_) CoreStorage(name_, version_) {}
 
+    /// @inheritdoc ISourceCore
     function initialize(InitParams calldata params) external initializer {
         __init_Core(params.admin, params.adapter, params.name, params.symbol);
         __init_SourceCore(
@@ -81,44 +70,49 @@ contract SourceCore is Core {
         );
     }
 
+    /// @inheritdoc ISourceCore
     function setBurner(address burner_) external onlyRole(DEFAULT_ADMIN_ROLE) {
         burner = burner_;
     }
 
+    /// @inheritdoc ISourceCore
     function setLimit(uint256 newLimit) external onlyRole(DEFAULT_ADMIN_ROLE) {
         limit = newLimit;
     }
 
+    /// @inheritdoc ISourceCore
     function setDepositWhitelist(bool status) external onlyRole(DEFAULT_ADMIN_ROLE) {
         isDepositWhitelist = status;
     }
 
+    /// @inheritdoc ISourceCore
     function setDepositorWhitelistStatus(address account, bool status) external onlyRole(DEFAULT_ADMIN_ROLE) {
         depositorWhitelistStatus[account] = status;
     }
 
-    function setDepositPause(bool status) external onlyRole(DEFAULT_ADMIN_ROLE) {
+    /// @inheritdoc ISourceCore
+    function setDepositPause(bool status) external onlyRole(PAUSE_ROLE) {
         depositPause = status;
     }
 
-    function setRedeemPause(bool status) external onlyRole(DEFAULT_ADMIN_ROLE) {
+    /// @inheritdoc ISourceCore
+    function setRedeemPause(bool status) external onlyRole(PAUSE_ROLE) {
         redeemPause = status;
     }
 
+    /// @inheritdoc ISourceCore
     function setPushDelay(uint256 newPushDelay) external onlyRole(DEFAULT_ADMIN_ROLE) {
         pushDelay = newPushDelay;
     }
 
-    function setValues(
-        uint256 minDepositValue_,
-        uint256 minPushDepositBatchValue_,
-        uint256 minRedeemValue_,
-        uint256 minPushRedeemBatchValue_
-    ) external onlyRole(DEFAULT_ADMIN_ROLE) {
+    /// @inheritdoc ISourceCore
+    function setMinDepositValue(uint256 minDepositValue_) external onlyRole(DEFAULT_ADMIN_ROLE) {
         minDepositValue = minDepositValue_;
-        minPushDepositBatchValue = minPushDepositBatchValue_;
+    }
+
+    /// @inheritdoc ISourceCore
+    function setMinRedeemValue(uint256 minRedeemValue_) external onlyRole(DEFAULT_ADMIN_ROLE) {
         minRedeemValue = minRedeemValue_;
-        minPushRedeemBatchValue = minPushRedeemBatchValue_;
     }
 
     function _receiveMessage(IAdapter.MessageType messageType, bytes calldata message) internal virtual override {
@@ -165,6 +159,7 @@ contract SourceCore is Core {
         }
     }
 
+    /// @inheritdoc ISourceCore
     function deposit(uint256 assets, address receiver) external payable returns (uint256 batchId) {
         if (depositPause || isDepositWhitelist && !depositorWhitelistStatus[msg.sender]) {
             revert Forbidden();
@@ -192,6 +187,7 @@ contract SourceCore is Core {
         }
     }
 
+    /// @inheritdoc ISourceCore
     function pushDepositBatch(uint256 batchId) external payable {
         Request storage deposit_ = _deposits[batchId];
         if (deposit_.status != Status.OPEN) {
@@ -204,9 +200,6 @@ contract SourceCore is Core {
             revert Forbidden();
         }
         uint256 depositValue = deposit_.value + msg.value;
-        if (depositValue < minPushDepositBatchValue) {
-            revert LimitUnderflow(minPushDepositBatchValue, depositValue);
-        }
         depositBatches++;
         deposit_.status = Status.PENDING;
         deposit_.value = 0;
@@ -214,6 +207,7 @@ contract SourceCore is Core {
         _sendMessage(IAdapter.MessageType.DEPOSIT, abi.encode(batchId, deposit_.requested), depositValue);
     }
 
+    /// @inheritdoc ISourceCore
     function retryPushDepositBatch(uint256 batchId) external payable {
         Request storage deposit_ = _deposits[batchId];
         if (deposit_.status != Status.PENDING) {
@@ -226,13 +220,11 @@ contract SourceCore is Core {
             revert Forbidden();
         }
         uint256 depositValue = msg.value;
-        if (depositValue < minPushDepositBatchValue) {
-            revert LimitUnderflow(minPushDepositBatchValue, depositValue);
-        }
         pushDepositsTimestamp[batchId] = block.timestamp;
         _sendMessage(IAdapter.MessageType.RETRY_DEPOSIT, abi.encode(batchId, deposit_.requested), depositValue);
     }
 
+    /// @inheritdoc ISourceCore
     function claimDeposits(uint256[] calldata batchIds, address recipient) external returns (uint256 shares) {
         address sender = msg.sender;
         for (uint256 i = 0; i < batchIds.length; i++) {
@@ -258,6 +250,7 @@ contract SourceCore is Core {
         }
     }
 
+    /// @inheritdoc ISourceCore
     function claimableDepositsOf(address user, uint256[] calldata batchIds) external view returns (uint256 assets) {
         for (uint256 i = 0; i < batchIds.length; i++) {
             Request storage deposit_ = _deposits[batchIds[i]];
@@ -278,6 +271,7 @@ contract SourceCore is Core {
         }
     }
 
+    /// @inheritdoc ISourceCore
     function redeem(uint256 shares, address receiver) external payable returns (uint256 batchId) {
         if (redeemPause) {
             revert Forbidden();
@@ -300,6 +294,7 @@ contract SourceCore is Core {
         }
     }
 
+    /// @inheritdoc ISourceCore
     function pushRedeemBatch(uint256 batchId) external payable {
         Request storage redeem_ = _redeems[batchId];
         if (redeem_.status != Status.OPEN) {
@@ -312,9 +307,6 @@ contract SourceCore is Core {
             revert Forbidden();
         }
         uint256 redeemValue = redeem_.value + msg.value;
-        if (redeemValue < minPushRedeemBatchValue) {
-            revert LimitUnderflow(minPushRedeemBatchValue, redeemValue);
-        }
         redeemBatches++;
         redeem_.status = Status.PENDING;
         redeem_.value = 0;
@@ -322,6 +314,7 @@ contract SourceCore is Core {
         _sendMessage(IAdapter.MessageType.REDEEM, abi.encode(batchId, redeem_.requested), redeemValue);
     }
 
+    /// @inheritdoc ISourceCore
     function retryPushRedeemBatch(uint256 batchId) external payable {
         Request storage redeem_ = _redeems[batchId];
         if (redeem_.status != Status.PENDING) {
@@ -334,13 +327,11 @@ contract SourceCore is Core {
             revert Forbidden();
         }
         uint256 redeemValue = msg.value;
-        if (redeemValue < minPushRedeemBatchValue) {
-            revert LimitUnderflow(minPushRedeemBatchValue, redeemValue);
-        }
         pushRedeemsTimestamp[batchId] = block.timestamp;
         _sendMessage(IAdapter.MessageType.RETRY_REDEEM, abi.encode(batchId, redeem_.requested), redeemValue);
     }
 
+    /// @inheritdoc ISourceCore
     function claimRedeems(uint256[] calldata batchIds, address recipient) external returns (uint256 assets) {
         address sender = msg.sender;
         for (uint256 i = 0; i < batchIds.length; i++) {
@@ -366,6 +357,7 @@ contract SourceCore is Core {
         }
     }
 
+    /// @inheritdoc ISourceCore
     function claimableRedeemsOf(address user, uint256[] calldata batchIds) external view returns (uint256 assets) {
         for (uint256 i = 0; i < batchIds.length; i++) {
             Request storage redeem_ = _redeems[batchIds[i]];

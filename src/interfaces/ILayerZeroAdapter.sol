@@ -15,10 +15,18 @@ import "@openzeppelin/contracts/utils/math/Math.sol";
 
 interface ILayerZeroAdapter is IAdapter {
     error Forbidden();
-    error LimitUnderflow();
-    error ForbiddenExecutor(address executor);
 
     function dstEid() external view returns (uint32);
+
+    function isExecutorWhitelist() external view returns (bool);
+
+    function executorWhitelistStatus(address executor) external view returns (bool);
+
+    function setIsExecutorWhitelist(bool status) external;
+
+    function setExecutorWhitelistStatus(address executor, bool status) external;
+
+    function setGasReceiver(address gasReceiver_) external;
 
     event Sent(uint32 indexed dstEid, bytes message, bytes options, MessagingReceipt receipt);
 }

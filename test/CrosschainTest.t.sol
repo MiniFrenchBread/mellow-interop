@@ -74,7 +74,7 @@ contract CrosschainTest is TestHelperOz5 {
         );
         vault.init("name", "symbol", address(targetCore.asset()));
         sourceCore.initialize(
-            SourceCore.InitParams(
+            ISourceCore.InitParams(
                 sourceCoreOwner,
                 address(0),
                 100 ether,

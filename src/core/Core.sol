@@ -22,16 +22,17 @@ abstract contract Core is ICore, CoreStorage, AccessControlEnumerableUpgradeable
     function _receiveMessage(IAdapter.MessageType messageType, bytes calldata message) internal virtual;
 
     function _sendMessage(IAdapter.MessageType messageType, bytes memory message, uint256 value) internal {
-        bytes memory fullMessage = adapter().encodeMessage(messageType, message);
-        uint256 requiredValue = adapter().quoteMessage(messageType, fullMessage, new bytes(0));
+        IAdapter adapter_ = adapter();
+        bytes memory fullMessage = adapter_.encodeMessage(messageType, message);
+        uint256 requiredValue = adapter_.quoteMessage(messageType, fullMessage, new bytes(0));
 
         if (requiredValue > value) {
             revert LimitOverflow(requiredValue, value);
         }
 
-        adapter().sendMessage{value: requiredValue}(messageType, fullMessage, new bytes(0));
+        adapter_.sendMessage{value: requiredValue}(messageType, fullMessage, new bytes(0));
         if (requiredValue < value) {
-            Address.sendValue(payable(adapter().gasReceiver()), value - requiredValue);
+            Address.sendValue(payable(adapter_.gasReceiver()), value - requiredValue);
         }
     }
 

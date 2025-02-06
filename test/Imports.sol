@@ -11,7 +11,7 @@ import {OptionsBuilder} from "@layerzerolabs/oapp-evm/contracts/oapp/libs/Option
 import {EnforcedOptionParam} from "@layerzerolabs/oapp-evm/contracts/oapp/interfaces/IOAppOptionsType3.sol";
 
 import {LayerZeroAdapter} from "../src/adapters/LayerZeroAdapter.sol";
-import {SourceCore} from "../src/core/SourceCore.sol";
+import {ISourceCore, SourceCore} from "../src/core/SourceCore.sol";
 import {TargetCore} from "../src/core/TargetCore.sol";
 import {RedeemClaimer} from "../src/utils/RedeemClaimer.sol";
 import {TestHelperOz5} from "@layerzerolabs/test-devtools-evm-foundry/contracts/TestHelperOz5.sol";
