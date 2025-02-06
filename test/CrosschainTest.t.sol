@@ -22,38 +22,72 @@ contract CrosschainTest is TestHelperOz5 {
     MockVault public vault;
     MockClaimer public claimer;
 
+    function setupOApps(bytes memory _oappCreationCode, address[2] memory cores, address gasReceiver_)
+        public
+        returns (address sourceOApp, address targetOApp)
+    {
+        address[] memory oapps = new address[](2);
+
+        oapps[0] = _deployOApp(
+            _oappCreationCode, abi.encode(address(endpoints[1]), address(this), cores[0], uint32(2), gasReceiver_)
+        );
+        oapps[1] = _deployOApp(
+            _oappCreationCode, abi.encode(address(endpoints[2]), address(this), cores[1], uint32(1), gasReceiver_)
+        );
+        // config
+        wireOApps(oapps);
+
+        return (oapps[0], oapps[1]);
+    }
+
     /// @notice Calls setUp from TestHelper and initializes contract instances for testing.
     function setUp() public virtual override {
         super.setUp();
-
-        // Setup function to initialize 2 Mock Endpoints with Mock MessageLib.
         setUpEndpoints(2, LibraryType.UltraLightNode);
 
-        // Initializes 2 MyOApps; one on chain A, one on chain B.
-        address[] memory sender = setupOApps(type(LayerZeroAdapter).creationCode, 1, 2);
-        sourceAdapter = LayerZeroAdapter(payable(sender[0]));
-        targetAdapter = LayerZeroAdapter(payable(sender[1]));
-
         claimer = new MockClaimer();
+        targetCore = new TargetCore("TargetCoreStorage", 1);
+        sourceCore = new SourceCore("SourceCoreStorage", 1);
 
-        targetCore = new TargetCore(targetCoreOwner, address(claimer), "TargetName", "TargetSymbol");
-        sourceCore = new SourceCore(sourceCoreOwner, Constants.WSTETH(), "SourceName", "SourceSymbol");
-        vault = new MockVault("name", "symbol", address(targetCore.asset()));
+        (address sourceAdapter_, address targetAdapter_) =
+            setupOApps(type(LayerZeroAdapter).creationCode, [address(sourceCore), address(targetCore)], address(this));
+        sourceAdapter = LayerZeroAdapter(payable(sourceAdapter_));
+        targetAdapter = LayerZeroAdapter(payable(targetAdapter_));
 
         vm.startPrank(sourceAdapter.owner());
-        sourceAdapter.setCore(address(sourceCore));
-        sourceAdapter.setDstEid(2);
         sourceAdapter.setGasReceiver(sourceAdapter.owner());
         vm.stopPrank();
 
         vm.startPrank(targetAdapter.owner());
-        targetAdapter.setCore(address(targetCore));
-        targetAdapter.setDstEid(1);
         targetAdapter.setGasReceiver(targetAdapter.owner());
         vm.stopPrank();
 
-        targetCore.initialize(address(vault), vm.createWallet("burner").addr, address(targetAdapter));
-        sourceCore.initialize(address(0), 100 ether, false, false, false, 0, address(sourceAdapter));
+        vault = new MockVault();
+        targetCore.initialize(
+            targetCoreOwner,
+            address(vault),
+            vm.createWallet("burner").addr,
+            address(targetAdapter),
+            address(claimer),
+            "TargetName",
+            "TargetSymbol"
+        );
+        vault.init("name", "symbol", address(targetCore.asset()));
+        sourceCore.initialize(
+            SourceCore.InitParams(
+                sourceCoreOwner,
+                address(0),
+                100 ether,
+                false,
+                false,
+                false,
+                0,
+                address(sourceAdapter),
+                Constants.WSTETH(),
+                "SourceName",
+                "SourceSymbol"
+            )
+        );
         {
             vm.startPrank(targetAdapter.owner());
             EnforcedOptionParam[] memory params = new EnforcedOptionParam[](uint256(type(IAdapter.MessageType).max) + 1);
@@ -102,7 +136,7 @@ contract CrosschainTest is TestHelperOz5 {
         bytes memory fullMessage =
             sourceAdapter.encodeMessage(IAdapter.MessageType.DEPOSIT, abi.encode(type(uint256).max, type(uint256).max));
 
-        sourceCore.pushDepositBatch{value: 1 ether}(batchId, new bytes(0));
+        sourceCore.pushDepositBatch{value: 1 ether}(batchId);
         vm.stopPrank();
 
         verifyPackets(targetEid, addressToBytes32(address(targetAdapter)));
@@ -136,14 +170,14 @@ contract CrosschainTest is TestHelperOz5 {
                 IAdapter.MessageType.DEPOSIT, abi.encode(type(uint256).max, type(uint256).max)
             );
 
-            sourceCore.pushDepositBatch{value: 1 ether}(batchId, new bytes(0));
+            sourceCore.pushDepositBatch{value: 1 ether}(batchId);
             vm.stopPrank();
 
             verifyPackets(targetEid, addressToBytes32(address(targetAdapter)));
 
             vm.startPrank(user);
             deal(user, 1 ether);
-            targetCore.pushDeposit{value: 1 ether}(batchId, new bytes(0));
+            targetCore.pushDeposit{value: 1 ether}(batchId);
 
             vm.stopPrank();
             verifyPackets(sourceEid, addressToBytes32(address(sourceAdapter)));
@@ -155,13 +189,11 @@ contract CrosschainTest is TestHelperOz5 {
         sourceCore.redeem(1 ether, user);
         {
             deal(user, 2 ether);
-            sourceCore.pushRedeemBatch{value: 1 ether}(0, new bytes(0));
+            sourceCore.pushRedeemBatch{value: 1 ether}(0);
 
             verifyPackets(targetEid, addressToBytes32(address(targetAdapter)));
 
-            targetCore.claim{value: 1 ether}(
-                0, abi.encode(new uint256[](0), new uint256[][](0), type(uint256).max), new bytes(0)
-            );
+            targetCore.claim{value: 1 ether}(0, abi.encode(new uint256[](0), new uint256[][](0), type(uint256).max));
 
             verifyPackets(sourceEid, addressToBytes32(address(sourceAdapter)));
 

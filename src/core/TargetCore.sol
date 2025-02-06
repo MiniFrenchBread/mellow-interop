@@ -9,7 +9,7 @@ contract TargetCore is Core {
     using SafeERC20 for IERC20;
 
     address public vault;
-    RedeemClaimer public immutable claimerSingleton;
+    RedeemClaimer public claimerSingleton;
 
     address public burner;
     mapping(uint256 batchId => address) public claimers;
@@ -26,23 +26,23 @@ contract TargetCore is Core {
     mapping(uint256 index => uint256 assets) public slashing;
     uint256 public slashings = 0;
 
-    constructor(address owner_, address claimer_, string memory name_, string memory symbol_)
-        Core(owner_, name_, symbol_)
-    {
-        claimerSingleton = new RedeemClaimer(claimer_, address(this), address(asset));
-    }
+    constructor(bytes32 name_, uint256 version_) CoreStorage(name_, version_) {}
 
-    function initialize(address vault_, address burner_, address adapter_) external initializer {
-        __init_Core(adapter_);
+    function initialize(
+        address admin_,
+        address vault_,
+        address burner_,
+        address adapter_,
+        address claimer_,
+        string memory name_,
+        string memory symbol_
+    ) external initializer {
+        __init_Core(admin_, adapter_, name_, symbol_);
         __init_TargetCore(vault_, burner_);
+        claimerSingleton = new RedeemClaimer(claimer_, address(this), address(asset()));
     }
 
-    function setVault(address vault_) external onlyOwner {
-        require(vault == address(0), "TargetCore: vault already set");
-        vault = vault_;
-    }
-
-    function setBurner(address burner_) external onlyOwner {
+    function setBurner(address burner_) external onlyRole(DEFAULT_ADMIN_ROLE) {
         /// @dev vault, separate burner contract or zero address
         burner = burner_;
     }
@@ -57,8 +57,8 @@ contract TargetCore is Core {
                 return;
             }
 
-            asset.mint(address(this), amount);
-            IERC20(asset).safeIncreaseAllowance(vault, amount);
+            asset().mint(address(this), amount);
+            IERC20(asset()).safeIncreaseAllowance(vault, amount);
             isDepositBatchCompleted[batchId] = true;
             depositBatchValues[batchId] = msg.value;
             depositBatchShares[batchId] = IERC4626(vault).deposit(amount, address(this));
@@ -79,26 +79,22 @@ contract TargetCore is Core {
     }
 
     // NOTE: permissionless claim
-    function claim(uint256 batchId, bytes calldata data, bytes calldata options)
-        external
-        payable
-        returns (uint256 assets)
-    {
+    function claim(uint256 batchId, bytes calldata data) external payable returns (uint256 assets) {
         address claimer = claimers[batchId];
         if (claimer == address(0)) {
             revert Forbidden();
         }
         assets = RedeemClaimer(claimer).claim(vault, data);
-        asset.burn(address(this), assets);
+        asset().burn(address(this), assets);
         if (assets == 0) {
             revert Forbidden();
         }
         uint256 index = claimsCount[batchId]++;
         claims[batchId][index] = assets;
-        _sendMessage(IAdapter.MessageType.CLAIM, abi.encode(batchId, index, assets), options, msg.value);
+        _sendMessage(IAdapter.MessageType.CLAIM, abi.encode(batchId, index, assets), msg.value);
     }
 
-    function retryClaim(uint256 batchId, uint256 index, bytes calldata options) external payable {
+    function retryClaim(uint256 batchId, uint256 index) external payable {
         address claimer = claimers[batchId];
         if (claimer == address(0)) {
             revert Forbidden();
@@ -107,11 +103,11 @@ contract TargetCore is Core {
         if (assets == 0) {
             revert Forbidden();
         }
-        _sendMessage(IAdapter.MessageType.RETRY_CLAIM, abi.encode(batchId, index, assets), options, msg.value);
+        _sendMessage(IAdapter.MessageType.RETRY_CLAIM, abi.encode(batchId, index, assets), msg.value);
     }
 
     // NOTE: permissionless push deposit
-    function pushDeposit(uint256 batchId, bytes calldata options) external payable {
+    function pushDeposit(uint256 batchId) external payable {
         uint256 shares = depositBatchShares[batchId];
         if (shares == 0) {
             revert Forbidden();
@@ -120,10 +116,10 @@ contract TargetCore is Core {
         if (value != 0) {
             delete depositBatchValues[batchId];
         }
-        _sendMessage(IAdapter.MessageType.DEPOSIT, abi.encode(batchId, shares), options, msg.value + value);
+        _sendMessage(IAdapter.MessageType.DEPOSIT, abi.encode(batchId, shares), msg.value + value);
     }
 
-    function retryClaim(uint256 batchId, bytes calldata options) external payable {
+    function retryClaim(uint256 batchId) external payable {
         uint256 shares = depositBatchShares[batchId];
         if (shares == 0) {
             revert Forbidden();
@@ -132,26 +128,26 @@ contract TargetCore is Core {
         if (value != 0) {
             delete depositBatchValues[batchId];
         }
-        _sendMessage(IAdapter.MessageType.DEPOSIT, abi.encode(batchId, shares), options, msg.value + value);
+        _sendMessage(IAdapter.MessageType.DEPOSIT, abi.encode(batchId, shares), msg.value + value);
     }
 
-    function slash(uint256 assets, bytes calldata options) external payable {
+    function slash(uint256 assets) external payable {
         if (msg.sender != burner) {
             revert Forbidden();
         }
-        asset.burn(burner, assets);
+        asset().burn(burner, assets);
         uint256 index = slashings++;
         slashing[index] = assets;
-        _sendMessage(IAdapter.MessageType.SLASHING, abi.encode(index, assets), options, msg.value);
+        _sendMessage(IAdapter.MessageType.SLASHING, abi.encode(index, assets), msg.value);
     }
 
     /// @dev permissionless function
-    function retrySlash(uint256 index, bytes calldata options) external payable {
+    function retrySlash(uint256 index) external payable {
         uint256 assets = slashing[index];
         if (assets == 0) {
             revert Forbidden();
         }
-        _sendMessage(IAdapter.MessageType.RETRY_SLASHING, abi.encode(index, assets), options, msg.value);
+        _sendMessage(IAdapter.MessageType.RETRY_SLASHING, abi.encode(index, assets), msg.value);
     }
 
     function __init_TargetCore(address vault_, address burner_) internal onlyInitializing {

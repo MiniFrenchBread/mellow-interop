@@ -21,4 +21,4 @@ import "./Constants.sol";
 import "../src/interfaces/IAdapter.sol";
 import "./MockClaimer.sol";
 import "./MockVault.sol";
-import "forge-std/console.sol";
+import "forge-std/console2.sol";

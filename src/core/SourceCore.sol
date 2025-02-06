@@ -23,9 +23,21 @@ contract SourceCore is Core {
         mapping(address account => uint256) accountClaimed;
     }
 
-    IERC20 public immutable underlyingAsset;
+    struct InitParams {
+        address admin;
+        address burner;
+        uint256 limit;
+        bool depositWhitelistStatus;
+        bool depositPause;
+        bool redeemPause;
+        uint256 pushDelay;
+        address adapter;
+        address underlyingAsset;
+        string name;
+        string symbol;
+    }
 
-    // burner contract for slashing events
+    IERC20 public underlyingAsset;
     address public burner;
 
     uint256 public depositBatches;
@@ -54,50 +66,46 @@ contract SourceCore is Core {
     mapping(uint256 batchId => mapping(uint256 index => bool)) public isClaimCompleted;
     mapping(uint256 index => bool) public isSlashingCompleted;
 
-    constructor(address owner_, address underlying, string memory name_, string memory symbol_)
-        Core(owner_, name_, symbol_)
-    {
-        underlyingAsset = IERC20(underlying);
+    constructor(bytes32 name_, uint256 version_) CoreStorage(name_, version_) {}
+
+    function initialize(InitParams calldata params) external initializer {
+        __init_Core(params.admin, params.adapter, params.name, params.symbol);
+        __init_SourceCore(
+            params.burner,
+            params.limit,
+            params.depositWhitelistStatus,
+            params.depositPause,
+            params.redeemPause,
+            params.pushDelay,
+            params.underlyingAsset
+        );
     }
 
-    function initialize(
-        address burner_,
-        uint256 limit_,
-        bool depositWhitelistStatus_,
-        bool depositPause_,
-        bool redeemPause_,
-        uint256 pushDelay_,
-        address adapter_
-    ) external initializer {
-        __init_Core(adapter_);
-        __init_SourceCore(burner_, limit_, depositWhitelistStatus_, depositPause_, redeemPause_, pushDelay_);
-    }
-
-    function setBurner(address burner_) external onlyOwner {
+    function setBurner(address burner_) external onlyRole(DEFAULT_ADMIN_ROLE) {
         burner = burner_;
     }
 
-    function setLimit(uint256 newLimit) external onlyOwner {
+    function setLimit(uint256 newLimit) external onlyRole(DEFAULT_ADMIN_ROLE) {
         limit = newLimit;
     }
 
-    function setDepositWhitelist(bool status) external onlyOwner {
+    function setDepositWhitelist(bool status) external onlyRole(DEFAULT_ADMIN_ROLE) {
         isDepositWhitelist = status;
     }
 
-    function setDepositorWhitelistStatus(address account, bool status) external onlyOwner {
+    function setDepositorWhitelistStatus(address account, bool status) external onlyRole(DEFAULT_ADMIN_ROLE) {
         depositorWhitelistStatus[account] = status;
     }
 
-    function setDepositPause(bool status) external onlyOwner {
+    function setDepositPause(bool status) external onlyRole(DEFAULT_ADMIN_ROLE) {
         depositPause = status;
     }
 
-    function setRedeemPause(bool status) external onlyOwner {
+    function setRedeemPause(bool status) external onlyRole(DEFAULT_ADMIN_ROLE) {
         redeemPause = status;
     }
 
-    function setPushDelay(uint256 newPushDelay) external onlyOwner {
+    function setPushDelay(uint256 newPushDelay) external onlyRole(DEFAULT_ADMIN_ROLE) {
         pushDelay = newPushDelay;
     }
 
@@ -106,7 +114,7 @@ contract SourceCore is Core {
         uint256 minPushDepositBatchValue_,
         uint256 minRedeemValue_,
         uint256 minPushRedeemBatchValue_
-    ) external onlyOwner {
+    ) external onlyRole(DEFAULT_ADMIN_ROLE) {
         minDepositValue = minDepositValue_;
         minPushDepositBatchValue = minPushDepositBatchValue_;
         minRedeemValue = minRedeemValue_;
@@ -184,7 +192,7 @@ contract SourceCore is Core {
         }
     }
 
-    function pushDepositBatch(uint256 batchId, bytes calldata options) external payable {
+    function pushDepositBatch(uint256 batchId) external payable {
         Request storage deposit_ = _deposits[batchId];
         if (deposit_.status != Status.OPEN) {
             revert InvalidStatus();
@@ -203,10 +211,10 @@ contract SourceCore is Core {
         deposit_.status = Status.PENDING;
         deposit_.value = 0;
         pushDepositsTimestamp[batchId] = block.timestamp;
-        _sendMessage(IAdapter.MessageType.DEPOSIT, abi.encode(batchId, deposit_.requested), options, depositValue);
+        _sendMessage(IAdapter.MessageType.DEPOSIT, abi.encode(batchId, deposit_.requested), depositValue);
     }
 
-    function retryPushDepositBatch(uint256 batchId, bytes calldata options) external payable {
+    function retryPushDepositBatch(uint256 batchId) external payable {
         Request storage deposit_ = _deposits[batchId];
         if (deposit_.status != Status.PENDING) {
             revert InvalidStatus();
@@ -222,7 +230,7 @@ contract SourceCore is Core {
             revert LimitUnderflow(minPushDepositBatchValue, depositValue);
         }
         pushDepositsTimestamp[batchId] = block.timestamp;
-        _sendMessage(IAdapter.MessageType.RETRY_DEPOSIT, abi.encode(batchId, deposit_.requested), options, depositValue);
+        _sendMessage(IAdapter.MessageType.RETRY_DEPOSIT, abi.encode(batchId, deposit_.requested), depositValue);
     }
 
     function claimDeposits(uint256[] calldata batchIds, address recipient) external returns (uint256 shares) {
@@ -246,7 +254,7 @@ contract SourceCore is Core {
             deposit_.accountClaimed[sender] = due;
         }
         if (shares != 0) {
-            asset.mint(recipient, shares);
+            asset().mint(recipient, shares);
         }
     }
 
@@ -277,7 +285,7 @@ contract SourceCore is Core {
         if (msg.value < minRedeemValue) {
             revert LimitUnderflow(minRedeemValue, msg.value);
         }
-        asset.burn(msg.sender, shares);
+        asset().burn(msg.sender, shares);
         batchId = redeemBatches;
         Request storage redeem_ = _redeems[batchId];
         if (redeem_.status == Status.CLOSED) {
@@ -292,7 +300,7 @@ contract SourceCore is Core {
         }
     }
 
-    function pushRedeemBatch(uint256 batchId, bytes calldata options) external payable {
+    function pushRedeemBatch(uint256 batchId) external payable {
         Request storage redeem_ = _redeems[batchId];
         if (redeem_.status != Status.OPEN) {
             revert InvalidStatus();
@@ -311,10 +319,10 @@ contract SourceCore is Core {
         redeem_.status = Status.PENDING;
         redeem_.value = 0;
         pushRedeemsTimestamp[batchId] = block.timestamp;
-        _sendMessage(IAdapter.MessageType.REDEEM, abi.encode(batchId, redeem_.requested), options, redeemValue);
+        _sendMessage(IAdapter.MessageType.REDEEM, abi.encode(batchId, redeem_.requested), redeemValue);
     }
 
-    function retryPushRedeemBatch(uint256 batchId, bytes calldata options) external payable {
+    function retryPushRedeemBatch(uint256 batchId) external payable {
         Request storage redeem_ = _redeems[batchId];
         if (redeem_.status != Status.PENDING) {
             revert InvalidStatus();
@@ -330,7 +338,7 @@ contract SourceCore is Core {
             revert LimitUnderflow(minPushRedeemBatchValue, redeemValue);
         }
         pushRedeemsTimestamp[batchId] = block.timestamp;
-        _sendMessage(IAdapter.MessageType.RETRY_REDEEM, abi.encode(batchId, redeem_.requested), options, redeemValue);
+        _sendMessage(IAdapter.MessageType.RETRY_REDEEM, abi.encode(batchId, redeem_.requested), redeemValue);
     }
 
     function claimRedeems(uint256[] calldata batchIds, address recipient) external returns (uint256 assets) {
@@ -384,7 +392,8 @@ contract SourceCore is Core {
         bool depositWhitelistStatus_,
         bool depositPause_,
         bool redeemPause_,
-        uint256 pushDelay_
+        uint256 pushDelay_,
+        address underlyingAsset_
     ) internal onlyInitializing {
         burner = burner_;
         limit = limit_;
@@ -392,5 +401,6 @@ contract SourceCore is Core {
         depositPause = depositPause_;
         redeemPause = redeemPause_;
         pushDelay = pushDelay_;
+        underlyingAsset = IERC20(underlyingAsset_);
     }
 }

@@ -3,27 +3,21 @@
 pragma solidity 0.8.25;
 
 import "../interfaces/ICore.sol";
+import "./CoreStorage.sol";
 
-abstract contract Core is ICore, Ownable, Initializable {
+abstract contract Core is ICore, CoreStorage, AccessControlEnumerableUpgradeable {
     error InvalidMessageType();
     error Forbidden();
     error InvalidStatus();
     error LimitOverflow(uint256 targetValue, uint256 value);
     error LimitUnderflow(uint256 targetValue, uint256 value);
 
-    OwnedERC20 public immutable asset;
-    IAdapter public adapter;
-
-    constructor(address owner_, string memory name_, string memory symbol_) Ownable(owner_) {
-        asset = new OwnedERC20(name_, symbol_, address(this));
-    }
-
-    function setAdapter(address adapter_) external onlyOwner {
+    function setAdapter(address adapter_) external onlyRole(DEFAULT_ADMIN_ROLE) {
         _setAdapter(adapter_);
     }
 
     function receiveMessage(IAdapter.MessageType messageType, bytes calldata message) external payable virtual {
-        if (msg.sender != address(adapter)) {
+        if (msg.sender != address(adapter())) {
             revert Forbidden();
         }
         _receiveMessage(messageType, message);
@@ -31,27 +25,27 @@ abstract contract Core is ICore, Ownable, Initializable {
 
     function _receiveMessage(IAdapter.MessageType messageType, bytes calldata message) internal virtual;
 
-    function _sendMessage(IAdapter.MessageType messageType, bytes memory message, bytes memory options, uint256 value)
-        internal
-    {
-        bytes memory fullMessage = adapter.encodeMessage(messageType, message);
-        uint256 requiredValue = adapter.quoteMessage(messageType, fullMessage, options);
+    function _sendMessage(IAdapter.MessageType messageType, bytes memory message, uint256 value) internal {
+        bytes memory fullMessage = adapter().encodeMessage(messageType, message);
+        uint256 requiredValue = adapter().quoteMessage(messageType, fullMessage, new bytes(0));
 
         if (requiredValue > value) {
             revert LimitOverflow(requiredValue, value);
         }
 
-        adapter.sendMessage{value: requiredValue}(messageType, fullMessage, options);
+        adapter().sendMessage{value: requiredValue}(messageType, fullMessage, new bytes(0));
         if (requiredValue < value) {
-            Address.sendValue(payable(adapter.gasReceiver()), value - requiredValue);
+            Address.sendValue(payable(adapter().gasReceiver()), value - requiredValue);
         }
     }
 
-    function __init_Core(address adapter_) internal onlyInitializing {
+    function __init_Core(address admin_, address adapter_, string memory name_, string memory symbol_)
+        internal
+        onlyInitializing
+    {
+        _grantRole(DEFAULT_ADMIN_ROLE, admin_);
         _setAdapter(adapter_);
-    }
-
-    function _setAdapter(address adapter_) internal {
-        adapter = IAdapter(adapter_);
+        address asset_ = address(new OwnedERC20(name_, symbol_, address(this)));
+        _setAsset(asset_);
     }
 }
