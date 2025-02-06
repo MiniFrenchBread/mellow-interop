@@ -59,8 +59,9 @@ contract TargetCore is Core {
                 return;
             }
 
-            asset().mint(address(this), amount);
-            IERC20(asset()).safeIncreaseAllowance(vault, amount);
+            OwnedERC20 asset_ = asset();
+            asset_.mint(address(this), amount);
+            IERC20(asset_).safeIncreaseAllowance(vault, amount);
             isDepositBatchCompleted[batchId] = true;
             depositBatchValues[batchId] = msg.value;
             depositBatchShares[batchId] = IERC4626(vault).deposit(amount, address(this));
