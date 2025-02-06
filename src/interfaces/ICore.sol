@@ -2,18 +2,15 @@
 
 pragma solidity 0.8.25;
 
-import "../utils/OwnedERC20.sol";
-import "./IAdapter.sol";
-
+import "./ICoreStorage.sol";
 import "@openzeppelin/contracts-upgradeable/access/extensions/AccessControlEnumerableUpgradeable.sol";
-
 import "@openzeppelin/contracts/interfaces/IERC4626.sol";
 import "@openzeppelin/contracts/proxy/Clones.sol";
 import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 import "@openzeppelin/contracts/utils/Address.sol";
 import "@openzeppelin/contracts/utils/math/Math.sol";
 
-interface ICore {
+interface ICore is ICoreStorage {
     error InvalidMessageType();
     error Forbidden();
     error InvalidStatus();
