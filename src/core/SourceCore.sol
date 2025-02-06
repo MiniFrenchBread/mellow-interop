@@ -103,50 +103,6 @@ contract SourceCore is ISourceCore, Core {
         minRedeemValue = minRedeemValue_;
     }
 
-    function _receiveMessage(IAdapter.MessageType messageType, bytes calldata message) internal virtual override {
-        if (messageType == IAdapter.MessageType.DEPOSIT) {
-            (uint256 batchId, uint256 amount) = abi.decode(message, (uint256, uint256));
-            Request storage deposit_ = _deposits[batchId];
-            if (deposit_.status != Status.PENDING) {
-                revert InvalidStatus();
-            }
-            deposit_.status = Status.COMPLETED;
-            deposit_.processed = amount;
-        } else if (messageType == IAdapter.MessageType.CLAIM || messageType == IAdapter.MessageType.RETRY_CLAIM) {
-            (uint256 batchId, uint256 index, uint256 amount) = abi.decode(message, (uint256, uint256, uint256));
-            Request storage redeem_ = _redeems[batchId];
-            if (isClaimCompleted[batchId][index]) {
-                if (messageType != IAdapter.MessageType.RETRY_CLAIM) {
-                    revert Forbidden();
-                }
-                return;
-            }
-            Status status = redeem_.status;
-            if (status != Status.PENDING && status != Status.COMPLETED) {
-                revert InvalidStatus();
-            }
-            if (status == Status.PENDING) {
-                redeem_.status = Status.COMPLETED;
-                redeem_.processed = amount;
-            } else {
-                redeem_.processed += amount;
-            }
-            isClaimCompleted[batchId][index] = true;
-        } else if (messageType == IAdapter.MessageType.SLASHING || messageType == IAdapter.MessageType.RETRY_SLASHING) {
-            (uint256 index, uint256 amount) = abi.decode(message, (uint256, uint256));
-            if (isSlashingCompleted[index]) {
-                if (messageType != IAdapter.MessageType.RETRY_SLASHING) {
-                    revert Forbidden();
-                }
-                return;
-            }
-            isSlashingCompleted[index] = true;
-            underlyingAsset.safeTransfer(burner, amount);
-        } else {
-            revert InvalidMessageType();
-        }
-    }
-
     /// @inheritdoc ISourceCore
     function deposit(uint256 assets, address receiver) external payable returns (uint256 batchId) {
         if (depositPause || isDepositWhitelist && !depositorWhitelistStatus[_msgSender()]) {
@@ -166,11 +122,11 @@ contract SourceCore is ISourceCore, Core {
         if (deposit_.status == Status.CLOSED) {
             deposit_.status = Status.OPEN;
             deposit_.requested = assets;
-            deposit_.accountRequest[receiver] = assets;
+            deposit_.accountRequested[receiver] = assets;
             deposit_.value = msg.value;
         } else {
             deposit_.requested += assets;
-            deposit_.accountRequest[receiver] += assets;
+            deposit_.accountRequested[receiver] += assets;
             deposit_.value += msg.value;
         }
     }
@@ -215,11 +171,11 @@ contract SourceCore is ISourceCore, Core {
             if (deposit_.status != Status.COMPLETED) {
                 continue;
             }
-            uint256 accountRequest = deposit_.accountRequest[sender];
-            if (accountRequest == 0) {
+            uint256 accountRequested = deposit_.accountRequested[sender];
+            if (accountRequested == 0) {
                 continue;
             }
-            uint256 due = Math.mulDiv(deposit_.processed, accountRequest, deposit_.requested);
+            uint256 due = Math.mulDiv(deposit_.processed, accountRequested, deposit_.requested);
             uint256 claimed = deposit_.accountClaimed[sender];
             if (claimed >= due) {
                 continue;
@@ -230,27 +186,6 @@ contract SourceCore is ISourceCore, Core {
         }
         if (shares != 0) {
             asset().mint(recipient, shares);
-        }
-    }
-
-    /// @inheritdoc ISourceCore
-    function claimableDepositsOf(address user, uint256[] calldata batchIds) external view returns (uint256 assets) {
-        for (uint256 i = 0; i < batchIds.length; i++) {
-            Request storage deposit_ = _deposits[batchIds[i]];
-            if (deposit_.status != Status.COMPLETED) {
-                continue;
-            }
-            uint256 accountRequest = deposit_.accountRequest[user];
-            if (accountRequest == 0) {
-                continue;
-            }
-            uint256 due = Math.mulDiv(deposit_.processed, accountRequest, deposit_.requested);
-            uint256 claimed = deposit_.accountClaimed[user];
-            if (claimed >= due) {
-                continue;
-            }
-            uint256 leftover = due - claimed;
-            assets += leftover;
         }
     }
 
@@ -268,11 +203,11 @@ contract SourceCore is ISourceCore, Core {
         if (redeem_.status == Status.CLOSED) {
             redeem_.status = Status.OPEN;
             redeem_.requested = shares;
-            redeem_.accountRequest[receiver] = shares;
+            redeem_.accountRequested[receiver] = shares;
             redeem_.value = msg.value;
         } else if (redeem_.status == Status.OPEN) {
             redeem_.requested += shares;
-            redeem_.accountRequest[receiver] += shares;
+            redeem_.accountRequested[receiver] += shares;
             redeem_.value += msg.value;
         }
     }
@@ -317,11 +252,11 @@ contract SourceCore is ISourceCore, Core {
             if (redeem_.status != Status.COMPLETED) {
                 continue;
             }
-            uint256 accountRequest = redeem_.accountRequest[sender];
-            if (accountRequest == 0) {
+            uint256 accountRequested = redeem_.accountRequested[sender];
+            if (accountRequested == 0) {
                 continue;
             }
-            uint256 due = Math.mulDiv(redeem_.processed, accountRequest, redeem_.requested);
+            uint256 due = Math.mulDiv(redeem_.processed, accountRequested, redeem_.requested);
             uint256 claimed = redeem_.accountClaimed[sender];
             if (claimed >= due) {
                 continue;
@@ -336,17 +271,38 @@ contract SourceCore is ISourceCore, Core {
     }
 
     /// @inheritdoc ISourceCore
+    function claimableDepositsOf(address user, uint256[] calldata batchIds) external view returns (uint256 assets) {
+        for (uint256 i = 0; i < batchIds.length; i++) {
+            Request storage deposit_ = _deposits[batchIds[i]];
+            if (deposit_.status != Status.COMPLETED) {
+                continue;
+            }
+            uint256 accountRequested = deposit_.accountRequested[user];
+            if (accountRequested == 0) {
+                continue;
+            }
+            uint256 due = Math.mulDiv(deposit_.processed, accountRequested, deposit_.requested);
+            uint256 claimed = deposit_.accountClaimed[user];
+            if (claimed >= due) {
+                continue;
+            }
+            uint256 leftover = due - claimed;
+            assets += leftover;
+        }
+    }
+
+    /// @inheritdoc ISourceCore
     function claimableRedeemsOf(address user, uint256[] calldata batchIds) external view returns (uint256 assets) {
         for (uint256 i = 0; i < batchIds.length; i++) {
             Request storage redeem_ = _redeems[batchIds[i]];
             if (redeem_.status != Status.COMPLETED) {
                 continue;
             }
-            uint256 accountRequest = redeem_.accountRequest[user];
-            if (accountRequest == 0) {
+            uint256 accountRequested = redeem_.accountRequested[user];
+            if (accountRequested == 0) {
                 continue;
             }
-            uint256 due = Math.mulDiv(redeem_.processed, accountRequest, redeem_.requested);
+            uint256 due = Math.mulDiv(redeem_.processed, accountRequested, redeem_.requested);
             uint256 claimed = redeem_.accountClaimed[user];
             if (claimed >= due) {
                 continue;
@@ -354,6 +310,50 @@ contract SourceCore is ISourceCore, Core {
             uint256 leftover = due - claimed;
             assets += leftover;
         }
+    }
+
+    /// @inheritdoc ISourceCore
+    function getDepositBatchInfo(uint256 batchId, address account)
+        public
+        view
+        returns (
+            uint256 value,
+            uint256 totalRequested,
+            uint256 totalProcessed,
+            Status status,
+            uint256 accountRequested,
+            uint256 accountClaimed
+        )
+    {
+        Request storage deposit_ = _deposits[batchId];
+        value = deposit_.value;
+        totalRequested = deposit_.requested;
+        totalProcessed = deposit_.processed;
+        status = deposit_.status;
+        accountRequested = deposit_.accountRequested[account];
+        accountClaimed = deposit_.accountClaimed[account];
+    }
+
+    /// @inheritdoc ISourceCore
+    function getRedeemBatchInfo(uint256 batchId, address account)
+        public
+        view
+        returns (
+            uint256 value,
+            uint256 totalRequested,
+            uint256 totalProcessed,
+            Status status,
+            uint256 accountRequested,
+            uint256 accountClaimed
+        )
+    {
+        Request storage redeem_ = _redeems[batchId];
+        value = redeem_.value;
+        totalRequested = redeem_.requested;
+        totalProcessed = redeem_.processed;
+        status = redeem_.status;
+        accountRequested = redeem_.accountRequested[account];
+        accountClaimed = redeem_.accountClaimed[account];
     }
 
     function __init_SourceCore(
@@ -370,5 +370,49 @@ contract SourceCore is ISourceCore, Core {
         depositPause = depositPause_;
         redeemPause = redeemPause_;
         underlyingAsset = IERC20(underlyingAsset_);
+    }
+
+    function _receiveMessage(IAdapter.MessageType messageType, bytes calldata message) internal virtual override {
+        if (messageType == IAdapter.MessageType.DEPOSIT) {
+            (uint256 batchId, uint256 amount) = abi.decode(message, (uint256, uint256));
+            Request storage deposit_ = _deposits[batchId];
+            if (deposit_.status != Status.PENDING) {
+                revert InvalidStatus();
+            }
+            deposit_.status = Status.COMPLETED;
+            deposit_.processed = amount;
+        } else if (messageType == IAdapter.MessageType.CLAIM || messageType == IAdapter.MessageType.RETRY_CLAIM) {
+            (uint256 batchId, uint256 index, uint256 amount) = abi.decode(message, (uint256, uint256, uint256));
+            Request storage redeem_ = _redeems[batchId];
+            if (isClaimCompleted[batchId][index]) {
+                if (messageType != IAdapter.MessageType.RETRY_CLAIM) {
+                    revert Forbidden();
+                }
+                return;
+            }
+            Status status = redeem_.status;
+            if (status != Status.PENDING && status != Status.COMPLETED) {
+                revert InvalidStatus();
+            }
+            if (status == Status.PENDING) {
+                redeem_.status = Status.COMPLETED;
+                redeem_.processed = amount;
+            } else {
+                redeem_.processed += amount;
+            }
+            isClaimCompleted[batchId][index] = true;
+        } else if (messageType == IAdapter.MessageType.SLASHING || messageType == IAdapter.MessageType.RETRY_SLASHING) {
+            (uint256 index, uint256 amount) = abi.decode(message, (uint256, uint256));
+            if (isSlashingCompleted[index]) {
+                if (messageType != IAdapter.MessageType.RETRY_SLASHING) {
+                    revert Forbidden();
+                }
+                return;
+            }
+            isSlashingCompleted[index] = true;
+            underlyingAsset.safeTransfer(burner, amount);
+        } else {
+            revert InvalidMessageType();
+        }
     }
 }

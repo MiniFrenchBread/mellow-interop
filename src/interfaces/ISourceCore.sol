@@ -15,9 +15,8 @@ interface ISourceCore is ICore {
         uint256 value;
         uint256 requested;
         uint256 processed;
-        uint256 claimed;
         Status status;
-        mapping(address account => uint256) accountRequest;
+        mapping(address account => uint256) accountRequested;
         mapping(address account => uint256) accountClaimed;
     }
 
@@ -58,13 +57,33 @@ interface ISourceCore is ICore {
 
     function pushDepositsTimestamp(uint256 batchId) external view returns (uint256);
 
-    // function deposits(uint256 batchId) external view returns (Request memory);
+    function getDepositBatchInfo(uint256 batchId, address account)
+        external
+        view
+        returns (
+            uint256 value,
+            uint256 totalRequested,
+            uint256 totalProcessed,
+            Status status,
+            uint256 accountRequested,
+            uint256 accountClaimed
+        );
 
     function redeemBatches() external view returns (uint256);
 
     function pushRedeemsTimestamp(uint256 batchId) external view returns (uint256);
 
-    // function redeems(uint256 batchId) external view returns (Request memory);
+    function getRedeemBatchInfo(uint256 batchId, address account)
+        external
+        view
+        returns (
+            uint256 value,
+            uint256 totalRequested,
+            uint256 totalProcessed,
+            Status status,
+            uint256 accountRequested,
+            uint256 accountClaimed
+        );
 
     function isClaimCompleted(uint256 batchId, uint256 index) external view returns (bool);
 
