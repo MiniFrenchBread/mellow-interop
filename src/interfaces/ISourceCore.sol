@@ -28,7 +28,6 @@ interface ISourceCore is ICore {
         bool depositWhitelistStatus;
         bool depositPause;
         bool redeemPause;
-        uint256 pushDelay;
         address adapter;
         address underlyingAsset;
         string name;
@@ -54,8 +53,6 @@ interface ISourceCore is ICore {
     function depositPause() external view returns (bool);
 
     function redeemPause() external view returns (bool);
-
-    function pushDelay() external view returns (uint256);
 
     function depositBatches() external view returns (uint256);
 
@@ -86,8 +83,6 @@ interface ISourceCore is ICore {
     function setDepositPause(bool status) external;
 
     function setRedeemPause(bool status) external;
-
-    function setPushDelay(uint256 newPushDelay) external;
 
     function setMinDepositValue(uint256 minDepositValue_) external;
 

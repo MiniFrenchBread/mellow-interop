@@ -7,6 +7,9 @@ import "./CoreStorage.sol";
 
 abstract contract Core is ICore, CoreStorage, AccessControlEnumerableUpgradeable {
     /// @inheritdoc ICore
+    bytes32 public constant OPERATOR_ROLE = keccak256("OPERATOR_ROLE");
+
+    /// @inheritdoc ICore
     function setAdapter(address adapter_) external onlyRole(DEFAULT_ADMIN_ROLE) {
         _setAdapter(adapter_);
     }

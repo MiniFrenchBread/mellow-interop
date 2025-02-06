@@ -20,6 +20,8 @@ interface ICore {
     error LimitOverflow(uint256 targetValue, uint256 value);
     error LimitUnderflow(uint256 targetValue, uint256 value);
 
+    function OPERATOR_ROLE() external view returns (bytes32);
+
     function setAdapter(address newAdapter) external;
 
     function receiveMessage(IAdapter.MessageType messageType, bytes calldata message) external payable;

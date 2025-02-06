@@ -8,6 +8,8 @@ import "./Core.sol";
 contract TargetCore is Core {
     using SafeERC20 for IERC20;
 
+    bytes32 public constant BURNER_ROLE = keccak256("BURNER_ROLE");
+
     address public vault;
     RedeemClaimer public claimerSingleton;
 
@@ -79,7 +81,12 @@ contract TargetCore is Core {
     }
 
     // NOTE: permissionless claim
-    function claim(uint256 batchId, bytes calldata data) external payable returns (uint256 assets) {
+    function claim(uint256 batchId, bytes calldata data)
+        external
+        payable
+        onlyRole(OPERATOR_ROLE)
+        returns (uint256 assets)
+    {
         address claimer = claimers[batchId];
         if (claimer == address(0)) {
             revert Forbidden();
@@ -94,7 +101,7 @@ contract TargetCore is Core {
         _sendMessage(IAdapter.MessageType.CLAIM, abi.encode(batchId, index, assets), msg.value);
     }
 
-    function retryClaim(uint256 batchId, uint256 index) external payable {
+    function retryClaim(uint256 batchId, uint256 index) external payable onlyRole(OPERATOR_ROLE) {
         address claimer = claimers[batchId];
         if (claimer == address(0)) {
             revert Forbidden();
@@ -107,7 +114,7 @@ contract TargetCore is Core {
     }
 
     // NOTE: permissionless push deposit
-    function pushDeposit(uint256 batchId) external payable {
+    function pushDeposit(uint256 batchId) external payable onlyRole(OPERATOR_ROLE) {
         uint256 shares = depositBatchShares[batchId];
         if (shares == 0) {
             revert Forbidden();
@@ -119,7 +126,7 @@ contract TargetCore is Core {
         _sendMessage(IAdapter.MessageType.DEPOSIT, abi.encode(batchId, shares), msg.value + value);
     }
 
-    function retryClaim(uint256 batchId) external payable {
+    function retryClaim(uint256 batchId) external payable onlyRole(OPERATOR_ROLE) {
         uint256 shares = depositBatchShares[batchId];
         if (shares == 0) {
             revert Forbidden();
@@ -131,18 +138,15 @@ contract TargetCore is Core {
         _sendMessage(IAdapter.MessageType.DEPOSIT, abi.encode(batchId, shares), msg.value + value);
     }
 
-    function slash(uint256 assets) external payable {
-        if (msg.sender != burner) {
-            revert Forbidden();
-        }
-        asset().burn(burner, assets);
+    function slash(uint256 assets) external payable onlyRole(BURNER_ROLE) {
+        asset().burn(_msgSender(), assets);
         uint256 index = slashings++;
         slashing[index] = assets;
         _sendMessage(IAdapter.MessageType.SLASHING, abi.encode(index, assets), msg.value);
     }
 
     /// @dev permissionless function
-    function retrySlash(uint256 index) external payable {
+    function retrySlash(uint256 index) external payable onlyRole(OPERATOR_ROLE) {
         uint256 assets = slashing[index];
         if (assets == 0) {
             revert Forbidden();

@@ -81,7 +81,6 @@ contract CrosschainTest is TestHelperOz5 {
                 false,
                 false,
                 false,
-                0,
                 address(sourceAdapter),
                 Constants.WSTETH(),
                 "SourceName",
@@ -174,6 +173,10 @@ contract CrosschainTest is TestHelperOz5 {
             vm.stopPrank();
 
             verifyPackets(targetEid, addressToBytes32(address(targetAdapter)));
+
+            vm.startPrank(targetCore.getRoleMember(0x00, 0));
+            targetCore.grantRole(targetCore.OPERATOR_ROLE(), user);
+            vm.stopPrank();
 
             vm.startPrank(user);
             deal(user, 1 ether);
