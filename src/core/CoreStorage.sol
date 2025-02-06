@@ -2,15 +2,9 @@
 
 pragma solidity 0.8.25;
 
-import "../interfaces/IAdapter.sol";
-import "../utils/OwnedERC20.sol";
+import "../interfaces/ICoreStorage.sol";
 
-abstract contract CoreStorage is Initializable {
-    struct Storage {
-        address asset;
-        address adapter;
-    }
-
+abstract contract CoreStorage is ICoreStorage, Initializable {
     bytes32 private immutable coreStorageSlotRef;
 
     constructor(bytes32 name_, uint256 version_) {
@@ -19,10 +13,12 @@ abstract contract CoreStorage is Initializable {
         ) & ~bytes32(uint256(0xff));
     }
 
+    /// @inheritdoc ICoreStorage
     function asset() public view returns (OwnedERC20) {
         return OwnedERC20(_coreStorage().asset);
     }
 
+    /// @inheritdoc ICoreStorage
     function adapter() public view returns (IAdapter) {
         return IAdapter(_coreStorage().adapter);
     }

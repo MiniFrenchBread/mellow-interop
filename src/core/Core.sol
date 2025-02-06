@@ -6,16 +6,12 @@ import "../interfaces/ICore.sol";
 import "./CoreStorage.sol";
 
 abstract contract Core is ICore, CoreStorage, AccessControlEnumerableUpgradeable {
-    error InvalidMessageType();
-    error Forbidden();
-    error InvalidStatus();
-    error LimitOverflow(uint256 targetValue, uint256 value);
-    error LimitUnderflow(uint256 targetValue, uint256 value);
-
+    /// @inheritdoc ICore
     function setAdapter(address adapter_) external onlyRole(DEFAULT_ADMIN_ROLE) {
         _setAdapter(adapter_);
     }
 
+    /// @inheritdoc ICore
     function receiveMessage(IAdapter.MessageType messageType, bytes calldata message) external payable virtual {
         if (msg.sender != address(adapter())) {
             revert Forbidden();

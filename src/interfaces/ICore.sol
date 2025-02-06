@@ -14,6 +14,12 @@ import "@openzeppelin/contracts/utils/Address.sol";
 import "@openzeppelin/contracts/utils/math/Math.sol";
 
 interface ICore {
+    error InvalidMessageType();
+    error Forbidden();
+    error InvalidStatus();
+    error LimitOverflow(uint256 targetValue, uint256 value);
+    error LimitUnderflow(uint256 targetValue, uint256 value);
+
     function setAdapter(address newAdapter) external;
 
     function receiveMessage(IAdapter.MessageType messageType, bytes calldata message) external payable;
