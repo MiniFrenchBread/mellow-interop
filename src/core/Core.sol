@@ -19,6 +19,7 @@ abstract contract Core is ICore, CoreStorage, AccessControlEnumerableUpgradeable
         if (_msgSender() != address(adapter())) {
             revert Forbidden();
         }
+        emit MessageReceived(messageType, message, msg.value);
         _receiveMessage(messageType, message);
     }
 
@@ -37,6 +38,7 @@ abstract contract Core is ICore, CoreStorage, AccessControlEnumerableUpgradeable
         if (requiredValue < value) {
             Address.sendValue(payable(adapter_.gasReceiver()), value - requiredValue);
         }
+        emit MessageSent(messageType, message, requiredValue);
     }
 
     function __init_Core(address admin_, address adapter_, string memory name_, string memory symbol_)

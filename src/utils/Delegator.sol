@@ -10,15 +10,19 @@ import {AccessControlEnumerable} from "@openzeppelin/contracts/access/extensions
 import {Address} from "@openzeppelin/contracts/utils/Address.sol";
 
 contract Delegator is AccessControlEnumerable {
+    error AddressZero();
+
     bytes32 public constant OPERATOR_ROLE = keccak256("OPERATOR_ROLE");
 
-    address public immutable endpointV2;
+    ILayerZeroEndpointV2 public immutable endpointV2;
 
     constructor(address admin_, address operator_, address endpointV2_) {
+        if (admin_ == address(0) || operator_ == address(0) || endpointV2_ == address(0)) {
+            revert AddressZero();
+        }
         _grantRole(DEFAULT_ADMIN_ROLE, admin_);
-        _grantRole(OPERATOR_ROLE, admin_);
         _grantRole(OPERATOR_ROLE, operator_);
-        endpointV2 = endpointV2_;
+        endpointV2 = ILayerZeroEndpointV2(endpointV2_);
     }
 
     function call(address target, bytes calldata data, uint256 value)
@@ -35,7 +39,7 @@ contract Delegator is AccessControlEnumerable {
         external
         onlyRole(OPERATOR_ROLE)
     {
-        ILayerZeroEndpointV2(endpointV2).clear(oapp_, origin_, guid_, message_);
+        endpointV2.clear(oapp_, origin_, guid_, message_);
         emit Clear(oapp_, origin_, guid_, message_);
     }
 

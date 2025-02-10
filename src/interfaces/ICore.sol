@@ -22,4 +22,8 @@ interface ICore is ICoreStorage {
     function setAdapter(address newAdapter) external;
 
     function receiveMessage(IAdapter.MessageType messageType, bytes calldata message) external payable;
+
+    event MessageReceived(IAdapter.MessageType messageType, bytes message, uint256 value);
+
+    event MessageSent(IAdapter.MessageType messageType, bytes message, uint256 value);
 }

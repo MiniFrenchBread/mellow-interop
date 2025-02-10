@@ -25,10 +25,12 @@ abstract contract CoreStorage is ICoreStorage, Initializable {
 
     function _setAsset(address asset_) internal onlyInitializing {
         _coreStorage().asset = asset_;
+        emit AssetSet(asset_);
     }
 
     function _setAdapter(address adapter_) internal {
         _coreStorage().adapter = adapter_;
+        emit AdapterSet(adapter_);
     }
 
     function _coreStorage() private view returns (Storage storage $) {

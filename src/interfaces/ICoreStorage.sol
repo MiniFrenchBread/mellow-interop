@@ -16,4 +16,8 @@ interface ICoreStorage {
     function asset() external view returns (OwnedERC20);
 
     function adapter() external view returns (IAdapter);
+
+    event AssetSet(address indexed asset);
+
+    event AdapterSet(address indexed adapter);
 }

@@ -66,46 +66,55 @@ contract SourceCore is ISourceCore, Core {
     /// @inheritdoc ISourceCore
     function setBurner(address burner_) external onlyRole(DEFAULT_ADMIN_ROLE) {
         burner = burner_;
+        emit BurnerSet(burner_);
     }
 
     /// @inheritdoc ISourceCore
     function setLimit(uint256 newLimit) external onlyRole(DEFAULT_ADMIN_ROLE) {
         limit = newLimit;
+        emit LimitSet(newLimit);
     }
 
     /// @inheritdoc ISourceCore
     function setDepositWhitelist(bool status) external onlyRole(DEFAULT_ADMIN_ROLE) {
         isDepositWhitelist = status;
+        emit DepositWhitelistSet(status);
     }
 
     /// @inheritdoc ISourceCore
     function setDepositorWhitelistStatus(address account, bool status) external onlyRole(DEFAULT_ADMIN_ROLE) {
         depositorWhitelistStatus[account] = status;
+        emit DepositorWhitelistStatusSet(account, status);
     }
 
     /// @inheritdoc ISourceCore
     function setDepositPause(bool status) external onlyRole(PAUSE_ROLE) {
         depositPause = status;
+        emit DepositPauseSet(status);
     }
 
     /// @inheritdoc ISourceCore
     function setRedeemPause(bool status) external onlyRole(PAUSE_ROLE) {
         redeemPause = status;
+        emit RedeemPauseSet(status);
     }
 
     /// @inheritdoc ISourceCore
     function setMinDepositValue(uint256 minDepositValue_) external onlyRole(DEFAULT_ADMIN_ROLE) {
         minDepositValue = minDepositValue_;
+        emit MinDepositValueSet(minDepositValue_);
     }
 
     /// @inheritdoc ISourceCore
     function setMinRedeemValue(uint256 minRedeemValue_) external onlyRole(DEFAULT_ADMIN_ROLE) {
         minRedeemValue = minRedeemValue_;
+        emit MinRedeemValueSet(minRedeemValue_);
     }
 
     /// @inheritdoc ISourceCore
     function deposit(uint256 assets, address receiver) external payable returns (uint256 batchId) {
-        if (depositPause || isDepositWhitelist && !depositorWhitelistStatus[_msgSender()]) {
+        address sender = _msgSender();
+        if (depositPause || isDepositWhitelist && !depositorWhitelistStatus[sender]) {
             revert Forbidden();
         }
         if (assets + underlyingAsset.balanceOf(address(this)) > limit) {
@@ -115,7 +124,7 @@ contract SourceCore is ISourceCore, Core {
         if (msg.value < minDepositValue) {
             revert InsufficientValue(minDepositValue, msg.value);
         }
-        underlyingAsset.safeTransferFrom(_msgSender(), address(this), assets);
+        underlyingAsset.safeTransferFrom(sender, address(this), assets);
 
         batchId = depositBatches;
         Request storage deposit_ = _deposits[batchId];
@@ -129,6 +138,7 @@ contract SourceCore is ISourceCore, Core {
             deposit_.accountRequested[receiver] += assets;
             deposit_.value += msg.value;
         }
+        emit Deposit(sender, receiver, batchId, assets);
     }
 
     /// @inheritdoc ISourceCore
@@ -148,6 +158,7 @@ contract SourceCore is ISourceCore, Core {
         deposit_.status = Status.PENDING;
         deposit_.value = 0;
         _sendMessage(IAdapter.MessageType.DEPOSIT, abi.encode(batchId, deposit_.requested), depositValue);
+        emit DepositBatchPushed(batchId);
     }
 
     /// @inheritdoc ISourceCore
@@ -197,7 +208,8 @@ contract SourceCore is ISourceCore, Core {
         if (msg.value < minRedeemValue) {
             revert InsufficientValue(minRedeemValue, msg.value);
         }
-        asset().burn(_msgSender(), shares);
+        address sender = _msgSender();
+        asset().burn(sender, shares);
         batchId = redeemBatches;
         Request storage redeem_ = _redeems[batchId];
         if (redeem_.status == Status.CLOSED) {
@@ -210,6 +222,7 @@ contract SourceCore is ISourceCore, Core {
             redeem_.accountRequested[receiver] += shares;
             redeem_.value += msg.value;
         }
+        emit Redeem(sender, receiver, batchId, shares);
     }
 
     /// @inheritdoc ISourceCore
