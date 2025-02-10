@@ -94,6 +94,7 @@ contract TargetCore is ITargetCore, Core {
         uint256 index = claimsCount[batchId]++;
         claims[batchId][index] = assets;
         _sendMessage(IAdapter.MessageType.CLAIM, abi.encode(batchId, index, assets), msg.value);
+        emit Claim(batchId, index, assets);
     }
 
     /// @inheritdoc ITargetCore
@@ -103,6 +104,7 @@ contract TargetCore is ITargetCore, Core {
             revert Forbidden();
         }
         _sendMessage(IAdapter.MessageType.CLAIM, abi.encode(batchId, index, assets), msg.value);
+        emit ClaimRetried(batchId, index, assets);
     }
 
     /// @inheritdoc ITargetCore
@@ -116,6 +118,7 @@ contract TargetCore is ITargetCore, Core {
             delete depositBatchValues[batchId];
         }
         _sendMessage(IAdapter.MessageType.DEPOSIT, abi.encode(batchId, shares), msg.value + value);
+        emit DepositBatchPushed(batchId, shares, msg.value);
     }
 
     /// @inheritdoc ITargetCore
@@ -124,6 +127,7 @@ contract TargetCore is ITargetCore, Core {
         uint256 index = slashings++;
         slashingEvents[index] = assets;
         _sendMessage(IAdapter.MessageType.SLASHING, abi.encode(index, assets), msg.value);
+        emit Slashing(index, assets);
     }
 
     /// @inheritdoc ITargetCore
@@ -133,5 +137,6 @@ contract TargetCore is ITargetCore, Core {
             revert Forbidden();
         }
         _sendMessage(IAdapter.MessageType.SLASHING, abi.encode(index, assets), msg.value);
+        emit SlashingRetried(index, assets);
     }
 }

@@ -26,7 +26,7 @@ interface ITargetCore is ICore {
 
     function claims(uint256 batchId, uint256 index) external view returns (uint256);
 
-    function slashing(uint256 index) external view returns (uint256);
+    function slashingEvents(uint256 index) external view returns (uint256);
 
     function slashings() external view returns (uint256);
 
@@ -48,4 +48,14 @@ interface ITargetCore is ICore {
     function slash(uint256 assets) external payable;
 
     function retrySlash(uint256 index) external payable;
+
+    event Claim(uint256 indexed batchId, uint256 indexed index, uint256 assets);
+
+    event ClaimRetried(uint256 indexed batchId, uint256 indexed index, uint256 assets);
+
+    event DepositBatchPushed(uint256 indexed batchId, uint256 shares, uint256 value);
+
+    event Slashing(uint256 indexed index, uint256 assets);
+
+    event SlashingRetried(uint256 indexed index, uint256 assets);
 }

@@ -40,11 +40,13 @@ contract LayerZeroAdapter is OApp, OAppOptionsType3, ILayerZeroAdapter {
     /// @inheritdoc ILayerZeroAdapter
     function setIsExecutorWhitelist(bool status) external onlyOwner {
         isExecutorWhitelist = status;
+        emit SetIsExecutorWhitelist(status);
     }
 
     /// @inheritdoc ILayerZeroAdapter
     function setExecutorWhitelistStatus(address executor, bool status) external onlyOwner {
         executorWhitelistStatus[executor] = status;
+        emit SetExecutorWhitelistStatus(executor, status);
     }
 
     /// @inheritdoc ILayerZeroAdapter
@@ -53,6 +55,7 @@ contract LayerZeroAdapter is OApp, OAppOptionsType3, ILayerZeroAdapter {
             revert InvalidParams();
         }
         gasReceiver = gasReceiver_;
+        emit SetGasReceiver(gasReceiver_);
     }
 
     /// @inheritdoc IAdapter
@@ -114,4 +117,10 @@ contract LayerZeroAdapter is OApp, OAppOptionsType3, ILayerZeroAdapter {
         (MessageType messageType, bytes memory message) = decodeMessage(_message);
         ICore(core).receiveMessage{value: msg.value}(messageType, message);
     }
+
+    event SetIsExecutorWhitelist(bool status);
+
+    event SetExecutorWhitelistStatus(address executor, bool status);
+
+    event SetGasReceiver(address gasReceiver);
 }

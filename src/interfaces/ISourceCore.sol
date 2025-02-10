@@ -147,15 +147,15 @@ interface ISourceCore is ICore {
 
     event DepositBatchPushed(uint256 indexed batchId);
 
-    event DepositBatchRetryPushed(uint256 indexed batchId);
+    event DepositBatchPushRetried(uint256 indexed batchId);
 
-    event DepositsClaimed(uint256[] indexed batchIds, address indexed recipient, uint256 shares);
+    event DepositsClaimed(address indexed sender, address indexed recipient, uint256 shares);
 
     event Redeem(address indexed sender, address indexed receiver, uint256 indexed batchId, uint256 value);
 
     event RedeemBatchPushed(uint256 indexed batchId);
 
-    event RedeemBatchRetried(uint256 indexed batchId);
+    event RedeemBatchPushRetried(uint256 indexed batchId);
 
-    event RedeemsClaimed(uint256[] indexed batchIds, address indexed recipient, uint256 assets);
+    event RedeemsClaimed(address indexed sender, address indexed recipient, uint256 assets);
 }

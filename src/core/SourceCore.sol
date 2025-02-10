@@ -174,6 +174,7 @@ contract SourceCore is ISourceCore, Core {
         }
         uint256 depositValue = msg.value;
         _sendMessage(IAdapter.MessageType.DEPOSIT, abi.encode(batchId, deposit_.requested), depositValue);
+        emit DepositBatchPushRetried(batchId);
     }
 
     /// @inheritdoc ISourceCore
@@ -200,6 +201,7 @@ contract SourceCore is ISourceCore, Core {
         if (shares != 0) {
             asset().mint(recipient, shares);
         }
+        emit DepositsClaimed(sender, recipient, shares);
     }
 
     /// @inheritdoc ISourceCore
@@ -244,6 +246,7 @@ contract SourceCore is ISourceCore, Core {
         redeem_.status = Status.PENDING;
         redeem_.value = 0;
         _sendMessage(IAdapter.MessageType.REDEEM, abi.encode(batchId, redeem_.requested), redeemValue);
+        emit RedeemBatchPushed(batchId);
     }
 
     /// @inheritdoc ISourceCore
@@ -257,6 +260,7 @@ contract SourceCore is ISourceCore, Core {
         }
         uint256 redeemValue = msg.value;
         _sendMessage(IAdapter.MessageType.REDEEM, abi.encode(batchId, redeem_.requested), redeemValue);
+        emit RedeemBatchPushRetried(batchId);
     }
 
     /// @inheritdoc ISourceCore
@@ -283,6 +287,7 @@ contract SourceCore is ISourceCore, Core {
         if (assets != 0) {
             underlyingAsset.safeTransfer(recipient, assets);
         }
+        emit RedeemsClaimed(sender, recipient, assets);
     }
 
     /// @inheritdoc ISourceCore
