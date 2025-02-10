@@ -10,9 +10,9 @@ interface ITargetCore is ICore {
 
     function vault() external view returns (address);
 
-    function claimerSingleton() external view returns (RedeemClaimer);
+    function redeemClaimerSingleton() external view returns (RedeemClaimer);
 
-    function claimers(uint256 batchId) external view returns (address);
+    function redeemClaimers(uint256 batchId) external view returns (address);
 
     function isDepositBatchCompleted(uint256 batchId) external view returns (bool);
 

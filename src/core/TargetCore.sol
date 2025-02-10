@@ -15,10 +15,10 @@ contract TargetCore is ITargetCore, Core {
     /// @inheritdoc ITargetCore
     address public vault;
     /// @inheritdoc ITargetCore
-    RedeemClaimer public claimerSingleton;
+    RedeemClaimer public redeemClaimerSingleton;
 
     /// @inheritdoc ITargetCore
-    mapping(uint256 batchId => address) public claimers;
+    mapping(uint256 batchId => address) public redeemClaimers;
     /// @inheritdoc ITargetCore
     mapping(uint256 batchId => bool) public isDepositBatchCompleted;
     /// @inheritdoc ITargetCore
@@ -32,11 +32,13 @@ contract TargetCore is ITargetCore, Core {
     /// @inheritdoc ITargetCore
     mapping(uint256 batchId => mapping(uint256 index => uint256 assets)) public claims;
     /// @inheritdoc ITargetCore
-    mapping(uint256 index => uint256 assets) public slashing;
+    mapping(uint256 index => uint256 assets) public slashingEvents;
     /// @inheritdoc ITargetCore
     uint256 public slashings = 0;
 
-    constructor(bytes32 name_, uint256 version_) CoreStorage(name_, version_) {}
+    constructor(bytes32 name_, uint256 version_) CoreStorage(name_, version_) {
+        _disableInitializers();
+    }
 
     /// @inheritdoc ITargetCore
     function initialize(
@@ -48,17 +50,14 @@ contract TargetCore is ITargetCore, Core {
         string memory symbol_
     ) external initializer {
         __init_Core(admin_, adapter_, name_, symbol_);
-        __init_TargetCore(vault_);
-        claimerSingleton = new RedeemClaimer(claimer_, address(this), address(asset()));
+        redeemClaimerSingleton = new RedeemClaimer(claimer_, address(this), address(asset()));
+        vault = vault_;
     }
 
     function _receiveMessage(IAdapter.MessageType messageType, bytes calldata message) internal virtual override {
         (uint256 batchId, uint256 amount) = abi.decode(message, (uint256, uint256));
-        if (messageType == IAdapter.MessageType.DEPOSIT || messageType == IAdapter.MessageType.RETRY_DEPOSIT) {
+        if (messageType == IAdapter.MessageType.DEPOSIT) {
             if (isDepositBatchCompleted[batchId]) {
-                if (messageType != IAdapter.MessageType.RETRY_DEPOSIT) {
-                    revert InvalidMessageType();
-                }
                 return;
             }
 
@@ -68,15 +67,12 @@ contract TargetCore is ITargetCore, Core {
             isDepositBatchCompleted[batchId] = true;
             depositBatchValues[batchId] = msg.value;
             depositBatchShares[batchId] = IERC4626(vault).deposit(amount, address(this));
-        } else if (messageType == IAdapter.MessageType.REDEEM || messageType == IAdapter.MessageType.RETRY_REDEEM) {
+        } else if (messageType == IAdapter.MessageType.REDEEM) {
             if (isRedeemBatchCompleted[batchId]) {
-                if (messageType != IAdapter.MessageType.RETRY_REDEEM) {
-                    revert InvalidMessageType();
-                }
                 return;
             }
-            address claimer = Clones.cloneDeterministic(address(claimerSingleton), bytes32(batchId));
-            claimers[batchId] = address(claimer);
+            address claimer = Clones.cloneDeterministic(address(redeemClaimerSingleton), bytes32(batchId));
+            redeemClaimers[batchId] = address(claimer);
             isRedeemBatchCompleted[batchId] = true;
             IERC4626(vault).redeem(amount, address(claimer), address(this));
         } else {
@@ -85,13 +81,8 @@ contract TargetCore is ITargetCore, Core {
     }
 
     /// @inheritdoc ITargetCore
-    function claim(uint256 batchId, bytes calldata data)
-        external
-        payable
-        onlyRole(OPERATOR_ROLE)
-        returns (uint256 assets)
-    {
-        address claimer = claimers[batchId];
+    function claim(uint256 batchId, bytes calldata data) external payable atLeastOperator returns (uint256 assets) {
+        address claimer = redeemClaimers[batchId];
         if (claimer == address(0)) {
             revert Forbidden();
         }
@@ -106,20 +97,16 @@ contract TargetCore is ITargetCore, Core {
     }
 
     /// @inheritdoc ITargetCore
-    function retryClaim(uint256 batchId, uint256 index) external payable onlyRole(OPERATOR_ROLE) {
-        address claimer = claimers[batchId];
-        if (claimer == address(0)) {
-            revert Forbidden();
-        }
+    function retryClaim(uint256 batchId, uint256 index) external payable atLeastOperator {
         uint256 assets = claims[batchId][index];
         if (assets == 0) {
             revert Forbidden();
         }
-        _sendMessage(IAdapter.MessageType.RETRY_CLAIM, abi.encode(batchId, index, assets), msg.value);
+        _sendMessage(IAdapter.MessageType.CLAIM, abi.encode(batchId, index, assets), msg.value);
     }
 
     /// @inheritdoc ITargetCore
-    function pushDeposit(uint256 batchId) external payable onlyRole(OPERATOR_ROLE) {
+    function pushDeposit(uint256 batchId) external payable atLeastOperator {
         uint256 shares = depositBatchShares[batchId];
         if (shares == 0) {
             revert Forbidden();
@@ -135,20 +122,16 @@ contract TargetCore is ITargetCore, Core {
     function slash(uint256 assets) external payable onlyRole(BURNER_ROLE) {
         asset().burn(_msgSender(), assets);
         uint256 index = slashings++;
-        slashing[index] = assets;
+        slashingEvents[index] = assets;
         _sendMessage(IAdapter.MessageType.SLASHING, abi.encode(index, assets), msg.value);
     }
 
     /// @inheritdoc ITargetCore
-    function retrySlash(uint256 index) external payable onlyRole(OPERATOR_ROLE) {
-        uint256 assets = slashing[index];
+    function retrySlash(uint256 index) external payable atLeastOperator {
+        uint256 assets = slashingEvents[index];
         if (assets == 0) {
             revert Forbidden();
         }
-        _sendMessage(IAdapter.MessageType.RETRY_SLASHING, abi.encode(index, assets), msg.value);
-    }
-
-    function __init_TargetCore(address vault_) internal onlyInitializing {
-        vault = vault_;
+        _sendMessage(IAdapter.MessageType.SLASHING, abi.encode(index, assets), msg.value);
     }
 }

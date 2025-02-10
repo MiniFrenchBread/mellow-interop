@@ -9,6 +9,14 @@ abstract contract Core is ICore, CoreStorage, AccessControlEnumerableUpgradeable
     /// @inheritdoc ICore
     bytes32 public constant OPERATOR_ROLE = keccak256("OPERATOR_ROLE");
 
+    modifier atLeastOperator() {
+        address sender = _msgSender();
+        if (!hasRole(OPERATOR_ROLE, sender) && !hasRole(DEFAULT_ADMIN_ROLE, sender)) {
+            revert Forbidden();
+        }
+        _;
+    }
+
     /// @inheritdoc ICore
     function setAdapter(address adapter_) external onlyRole(DEFAULT_ADMIN_ROLE) {
         _setAdapter(adapter_);

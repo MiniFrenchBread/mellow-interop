@@ -48,7 +48,9 @@ contract SourceCore is ISourceCore, Core {
     mapping(uint256 batchId => Request) private _deposits;
     mapping(uint256 batchId => Request) private _redeems;
 
-    constructor(bytes32 name_, uint256 version_) CoreStorage(name_, version_) {}
+    constructor(bytes32 name_, uint256 version_) CoreStorage(name_, version_) {
+        _disableInitializers();
+    }
 
     /// @inheritdoc ISourceCore
     function initialize(InitParams calldata params) external initializer {
@@ -162,7 +164,7 @@ contract SourceCore is ISourceCore, Core {
     }
 
     /// @inheritdoc ISourceCore
-    function retryPushDepositBatch(uint256 batchId) external payable onlyRole(OPERATOR_ROLE) {
+    function retryPushDepositBatch(uint256 batchId) external payable atLeastOperator {
         Request storage deposit_ = _deposits[batchId];
         if (deposit_.status != Status.PENDING) {
             revert InvalidStatus();
@@ -171,7 +173,7 @@ contract SourceCore is ISourceCore, Core {
             revert Forbidden();
         }
         uint256 depositValue = msg.value;
-        _sendMessage(IAdapter.MessageType.RETRY_DEPOSIT, abi.encode(batchId, deposit_.requested), depositValue);
+        _sendMessage(IAdapter.MessageType.DEPOSIT, abi.encode(batchId, deposit_.requested), depositValue);
     }
 
     /// @inheritdoc ISourceCore
@@ -245,7 +247,7 @@ contract SourceCore is ISourceCore, Core {
     }
 
     /// @inheritdoc ISourceCore
-    function retryPushRedeemBatch(uint256 batchId) external payable onlyRole(OPERATOR_ROLE) {
+    function retryPushRedeemBatch(uint256 batchId) external payable atLeastOperator {
         Request storage redeem_ = _redeems[batchId];
         if (redeem_.status != Status.PENDING) {
             revert InvalidStatus();
@@ -254,7 +256,7 @@ contract SourceCore is ISourceCore, Core {
             revert Forbidden();
         }
         uint256 redeemValue = msg.value;
-        _sendMessage(IAdapter.MessageType.RETRY_REDEEM, abi.encode(batchId, redeem_.requested), redeemValue);
+        _sendMessage(IAdapter.MessageType.REDEEM, abi.encode(batchId, redeem_.requested), redeemValue);
     }
 
     /// @inheritdoc ISourceCore
@@ -394,13 +396,10 @@ contract SourceCore is ISourceCore, Core {
             }
             deposit_.status = Status.COMPLETED;
             deposit_.processed = amount;
-        } else if (messageType == IAdapter.MessageType.CLAIM || messageType == IAdapter.MessageType.RETRY_CLAIM) {
+        } else if (messageType == IAdapter.MessageType.CLAIM) {
             (uint256 batchId, uint256 index, uint256 amount) = abi.decode(message, (uint256, uint256, uint256));
             Request storage redeem_ = _redeems[batchId];
             if (isClaimCompleted[batchId][index]) {
-                if (messageType != IAdapter.MessageType.RETRY_CLAIM) {
-                    revert Forbidden();
-                }
                 return;
             }
             Status status = redeem_.status;
@@ -414,12 +413,9 @@ contract SourceCore is ISourceCore, Core {
                 redeem_.processed += amount;
             }
             isClaimCompleted[batchId][index] = true;
-        } else if (messageType == IAdapter.MessageType.SLASHING || messageType == IAdapter.MessageType.RETRY_SLASHING) {
+        } else if (messageType == IAdapter.MessageType.SLASHING) {
             (uint256 index, uint256 amount) = abi.decode(message, (uint256, uint256));
             if (isSlashingCompleted[index]) {
-                if (messageType != IAdapter.MessageType.RETRY_SLASHING) {
-                    revert Forbidden();
-                }
                 return;
             }
             isSlashingCompleted[index] = true;

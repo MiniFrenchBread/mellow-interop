@@ -46,9 +46,20 @@ contract CrosschainTest is TestHelperOz5 {
         setUpEndpoints(2, LibraryType.UltraLightNode);
 
         claimer = new MockClaimer();
-        targetCore = new TargetCore("TargetCoreStorage", 1);
-        sourceCore = new SourceCore("SourceCoreStorage", 1);
-
+        targetCore = TargetCore(
+            address(
+                new TransparentUpgradeableProxy(
+                    address(new TargetCore("TargetCoreStorage", 1)), address(0xdead), new bytes(0)
+                )
+            )
+        );
+        sourceCore = SourceCore(
+            address(
+                new TransparentUpgradeableProxy(
+                    address(new SourceCore("SourceCoreStorage", 1)), address(0xdead), new bytes(0)
+                )
+            )
+        );
         (address sourceAdapter_, address targetAdapter_) =
             setupOApps(type(LayerZeroAdapter).creationCode, [address(sourceCore), address(targetCore)], address(this));
         sourceAdapter = LayerZeroAdapter(payable(sourceAdapter_));

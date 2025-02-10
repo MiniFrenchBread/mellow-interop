@@ -16,6 +16,8 @@ import {TargetCore} from "../src/core/TargetCore.sol";
 import {RedeemClaimer} from "../src/utils/RedeemClaimer.sol";
 import {TestHelperOz5} from "@layerzerolabs/test-devtools-evm-foundry/contracts/TestHelperOz5.sol";
 
+import {TransparentUpgradeableProxy} from "@openzeppelin/contracts/proxy/transparent/TransparentUpgradeableProxy.sol";
+
 import "./Constants.sol";
 
 import "../src/interfaces/IAdapter.sol";
