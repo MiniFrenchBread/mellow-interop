@@ -108,7 +108,7 @@ contract TargetCore is ITargetCore, Core {
         if (claimer == address(0)) {
             revert Forbidden();
         }
-        assets = RedeemClaimer(claimer).claim(vault, data);
+        assets = RedeemClaimer(claimer).claim(data);
         asset().burn(address(this), assets);
         if (assets == 0) {
             revert Forbidden();

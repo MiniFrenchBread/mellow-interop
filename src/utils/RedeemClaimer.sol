@@ -3,7 +3,7 @@
 pragma solidity 0.8.25;
 
 import "../interfaces/IClaimer.sol";
-import "../interfaces/ICore.sol";
+import "../interfaces/ITargetCore.sol";
 import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 
 contract RedeemClaimer {
@@ -11,24 +11,28 @@ contract RedeemClaimer {
 
     error Forbidden();
 
-    address public immutable claimer;
-    address public immutable core;
+    IClaimer public immutable claimer;
+    ITargetCore public immutable core;
     IERC20 public immutable asset;
 
     constructor(address claimer_, address core_, address asset_) {
-        claimer = claimer_;
-        core = core_;
+        claimer = IClaimer(claimer_);
+        core = ITargetCore(core_);
         asset = IERC20(asset_);
     }
 
-    function claim(address multiVault, bytes calldata data) external returns (uint256 assets) {
-        if (msg.sender != core) {
-            revert Forbidden();
-        }
+    function claimAssets(bytes calldata data) public {
         (uint256[] memory subvaultIndices, uint256[][] memory indices, uint256 maxAssets) =
             abi.decode(data, (uint256[], uint256[][], uint256));
-        IClaimer(claimer).multiAcceptAndClaim(multiVault, subvaultIndices, indices, address(this), maxAssets);
+        claimer.multiAcceptAndClaim(core.vault(), subvaultIndices, indices, address(this), maxAssets);
+    }
+
+    function claim(bytes calldata data) external returns (uint256 assets) {
+        if (msg.sender != address(core)) {
+            revert Forbidden();
+        }
+        claimAssets(data);
         assets = asset.balanceOf(address(this));
-        asset.safeTransfer(core, assets);
+        asset.safeTransfer(address(core), assets);
     }
 }

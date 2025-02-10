@@ -113,7 +113,7 @@ contract SourceCore is ISourceCore, Core {
         }
 
         if (msg.value < minDepositValue) {
-            revert LimitUnderflow(minDepositValue, msg.value);
+            revert InsufficientValue(minDepositValue, msg.value);
         }
         underlyingAsset.safeTransferFrom(_msgSender(), address(this), assets);
 
@@ -195,7 +195,7 @@ contract SourceCore is ISourceCore, Core {
             revert Forbidden();
         }
         if (msg.value < minRedeemValue) {
-            revert LimitUnderflow(minRedeemValue, msg.value);
+            revert InsufficientValue(minRedeemValue, msg.value);
         }
         asset().burn(_msgSender(), shares);
         batchId = redeemBatches;

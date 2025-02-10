@@ -14,8 +14,8 @@ interface ICore is ICoreStorage {
     error InvalidMessageType();
     error Forbidden();
     error InvalidStatus();
-    error LimitOverflow(uint256 targetValue, uint256 value);
-    error LimitUnderflow(uint256 targetValue, uint256 value);
+    error LimitOverflow(uint256 limit, uint256 value);
+    error InsufficientValue(uint256 minValue, uint256 value);
 
     function OPERATOR_ROLE() external view returns (bytes32);
 

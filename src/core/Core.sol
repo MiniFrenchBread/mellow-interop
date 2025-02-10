@@ -16,7 +16,7 @@ abstract contract Core is ICore, CoreStorage, AccessControlEnumerableUpgradeable
 
     /// @inheritdoc ICore
     function receiveMessage(IAdapter.MessageType messageType, bytes calldata message) external payable virtual {
-        if (msg.sender != address(adapter())) {
+        if (_msgSender() != address(adapter())) {
             revert Forbidden();
         }
         _receiveMessage(messageType, message);
@@ -30,7 +30,7 @@ abstract contract Core is ICore, CoreStorage, AccessControlEnumerableUpgradeable
         uint256 requiredValue = adapter_.quoteMessage(messageType, fullMessage, new bytes(0));
 
         if (requiredValue > value) {
-            revert LimitOverflow(requiredValue, value);
+            revert InsufficientValue(requiredValue, value);
         }
 
         adapter_.sendMessage{value: requiredValue}(messageType, fullMessage, new bytes(0));
