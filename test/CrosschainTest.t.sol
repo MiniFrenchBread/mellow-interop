@@ -64,13 +64,7 @@ contract CrosschainTest is TestHelperOz5 {
 
         vault = new MockVault();
         targetCore.initialize(
-            targetCoreOwner,
-            address(vault),
-            vm.createWallet("burner").addr,
-            address(targetAdapter),
-            address(claimer),
-            "TargetName",
-            "TargetSymbol"
+            targetCoreOwner, address(vault), address(targetAdapter), address(claimer), "TargetName", "TargetSymbol"
         );
         vault.init("name", "symbol", address(targetCore.asset()));
         sourceCore.initialize(

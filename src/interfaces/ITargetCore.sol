@@ -12,8 +12,6 @@ interface ITargetCore is ICore {
 
     function claimerSingleton() external view returns (RedeemClaimer);
 
-    function burner() external view returns (address);
-
     function claimers(uint256 batchId) external view returns (address);
 
     function isDepositBatchCompleted(uint256 batchId) external view returns (bool);
@@ -35,22 +33,17 @@ interface ITargetCore is ICore {
     function initialize(
         address admin_,
         address vault_,
-        address burner_,
         address adapter_,
         address claimer_,
         string memory name_,
         string memory symbol_
     ) external;
 
-    function setBurner(address burner_) external;
-
     function claim(uint256 batchId, bytes calldata data) external payable returns (uint256 assets);
 
     function retryClaim(uint256 batchId, uint256 index) external payable;
 
     function pushDeposit(uint256 batchId) external payable;
-
-    function retryClaim(uint256 batchId) external payable;
 
     function slash(uint256 assets) external payable;
 

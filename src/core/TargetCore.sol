@@ -18,25 +18,19 @@ contract TargetCore is ITargetCore, Core {
     RedeemClaimer public claimerSingleton;
 
     /// @inheritdoc ITargetCore
-    address public burner;
-    /// @inheritdoc ITargetCore
     mapping(uint256 batchId => address) public claimers;
-
     /// @inheritdoc ITargetCore
     mapping(uint256 batchId => bool) public isDepositBatchCompleted;
     /// @inheritdoc ITargetCore
     mapping(uint256 batchId => uint256) public depositBatchShares;
     /// @inheritdoc ITargetCore
     mapping(uint256 batchId => uint256) public depositBatchValues;
-
     /// @inheritdoc ITargetCore
     mapping(uint256 batchId => bool) public isRedeemBatchCompleted;
-
     /// @inheritdoc ITargetCore
     mapping(uint256 batchId => uint256) public claimsCount;
     /// @inheritdoc ITargetCore
     mapping(uint256 batchId => mapping(uint256 index => uint256 assets)) public claims;
-
     /// @inheritdoc ITargetCore
     mapping(uint256 index => uint256 assets) public slashing;
     /// @inheritdoc ITargetCore
@@ -48,21 +42,14 @@ contract TargetCore is ITargetCore, Core {
     function initialize(
         address admin_,
         address vault_,
-        address burner_,
         address adapter_,
         address claimer_,
         string memory name_,
         string memory symbol_
     ) external initializer {
         __init_Core(admin_, adapter_, name_, symbol_);
-        __init_TargetCore(vault_, burner_);
+        __init_TargetCore(vault_);
         claimerSingleton = new RedeemClaimer(claimer_, address(this), address(asset()));
-    }
-
-    /// @inheritdoc ITargetCore
-    function setBurner(address burner_) external onlyRole(DEFAULT_ADMIN_ROLE) {
-        /// @dev vault, separate burner contract or zero address
-        burner = burner_;
     }
 
     function _receiveMessage(IAdapter.MessageType messageType, bytes calldata message) internal virtual override {
@@ -145,19 +132,6 @@ contract TargetCore is ITargetCore, Core {
     }
 
     /// @inheritdoc ITargetCore
-    function retryClaim(uint256 batchId) external payable onlyRole(OPERATOR_ROLE) {
-        uint256 shares = depositBatchShares[batchId];
-        if (shares == 0) {
-            revert Forbidden();
-        }
-        uint256 value = depositBatchValues[batchId];
-        if (value != 0) {
-            delete depositBatchValues[batchId];
-        }
-        _sendMessage(IAdapter.MessageType.DEPOSIT, abi.encode(batchId, shares), msg.value + value);
-    }
-
-    /// @inheritdoc ITargetCore
     function slash(uint256 assets) external payable onlyRole(BURNER_ROLE) {
         asset().burn(_msgSender(), assets);
         uint256 index = slashings++;
@@ -174,8 +148,7 @@ contract TargetCore is ITargetCore, Core {
         _sendMessage(IAdapter.MessageType.RETRY_SLASHING, abi.encode(index, assets), msg.value);
     }
 
-    function __init_TargetCore(address vault_, address burner_) internal onlyInitializing {
+    function __init_TargetCore(address vault_) internal onlyInitializing {
         vault = vault_;
-        burner = burner_;
     }
 }
