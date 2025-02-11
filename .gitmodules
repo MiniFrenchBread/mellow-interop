@@ -13,3 +13,7 @@
 [submodule "lib/layerzero-v2"]
 	path = lib/layerzero-v2
 	url = https://github.com/layerzero-labs/layerzero-v2
+[submodule "lib/layerzero-v1"]
+	path = lib/layerzero-v1
+	url = https://github.com/layerzero-labs/layerzero-v1
+	branch = main
