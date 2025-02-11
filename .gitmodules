@@ -18,3 +18,7 @@
 	path = lib/layerzero-v2
 	url = https://github.com/layerzero-labs/layerzero-v2
 	branch = main
+[submodule "lib/devtools"]
+	path = lib/devtools
+	url = https://github.com/layerzero-labs/devtools
+	branch = main
