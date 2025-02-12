@@ -155,7 +155,7 @@ contract SourceCore is ISourceCore, Core {
     }
 
     /// @inheritdoc ISourceCore
-    function pushDepositBatch(uint256 batchId) external payable nonReentrant {
+    function pushDepositBatch(uint256 batchId) external payable nonReentrant atLeastOperator {
         Request storage deposit_ = _deposits[batchId];
         if (deposit_.status != Status.OPEN) {
             revert InvalidStatus();
@@ -174,7 +174,7 @@ contract SourceCore is ISourceCore, Core {
     }
 
     /// @inheritdoc ISourceCore
-    function retryPushDepositBatch(uint256 batchId) external payable nonReentrant {
+    function retryPushDepositBatch(uint256 batchId) external payable nonReentrant atLeastOperator {
         Request storage deposit_ = _deposits[batchId];
         if (deposit_.status != Status.PENDING || isDepositRequestRejected(batchId)) {
             revert InvalidStatus();
@@ -261,7 +261,7 @@ contract SourceCore is ISourceCore, Core {
     }
 
     /// @inheritdoc ISourceCore
-    function pushRedeemBatch(uint256 batchId) external payable nonReentrant {
+    function pushRedeemBatch(uint256 batchId) external payable nonReentrant atLeastOperator {
         Request storage redeem_ = _redeems[batchId];
         if (redeem_.status != Status.OPEN) {
             revert InvalidStatus();
@@ -280,7 +280,7 @@ contract SourceCore is ISourceCore, Core {
     }
 
     /// @inheritdoc ISourceCore
-    function retryPushRedeemBatch(uint256 batchId) external payable nonReentrant {
+    function retryPushRedeemBatch(uint256 batchId) external payable nonReentrant atLeastOperator {
         Request storage redeem_ = _redeems[batchId];
         if (redeem_.status != Status.PENDING || isRedeemRequestRejected(batchId)) {
             revert InvalidStatus();
