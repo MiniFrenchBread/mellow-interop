@@ -39,7 +39,7 @@ contract SourceCore is ISourceCore, Core {
     mapping(uint256 batchId => mapping(uint256 index => bool)) public isClaimCompleted;
     /// @inheritdoc ISourceCore
     mapping(uint256 index => bool) public isSlashingCompleted;
-
+    /// @inheritdoc ISourceCore
     mapping(uint256 id => bool) public rejectedMessages;
 
     mapping(uint256 batchId => Request) private _deposits;
@@ -138,23 +138,17 @@ contract SourceCore is ISourceCore, Core {
         emit DepositRequest(sender, batchId, assets);
     }
 
+    /// @inheritdoc ISourceCore
     function cancelDepositRequest(uint256 batchId) external nonReentrant returns (uint256 assets) {
         address sender = _msgSender();
-        underlyingAsset.safeTransferFrom(sender, address(this), assets);
-
-        batchId = depositBatches;
         Request storage deposit_ = _deposits[batchId];
         ISourceCore.Status status = deposit_.status;
-        if (status == ISourceCore.Status.OPEN) {
+        if (status == ISourceCore.Status.OPEN || isDepositRequestRejected(batchId)) {
             assets = deposit_.accountRequested[sender];
             deposit_.requested -= assets;
             delete deposit_.accountRequested[sender];
             IERC20(underlyingAsset).safeTransfer(sender, assets);
-        } else if (isDepositRequestRejected(batchId)) {
-            assets = deposit_.accountRequested[sender];
-            deposit_.requested -= assets;
-            delete deposit_.accountRequested[sender];
-            IERC20(underlyingAsset).safeTransfer(sender, assets);
+            emit DepositRequestCanceled(sender, batchId, assets);
         } else {
             revert InvalidStatus();
         }
@@ -231,6 +225,22 @@ contract SourceCore is ISourceCore, Core {
             redeem_.accountRequested[sender] += shares;
         }
         emit RedeemRequest(sender, batchId, shares);
+    }
+
+    /// @inheritdoc ISourceCore
+    function cancelRedeemRequest(uint256 batchId) external nonReentrant returns (uint256 shares) {
+        address sender = _msgSender();
+        Request storage redeem_ = _redeems[batchId];
+        ISourceCore.Status status = redeem_.status;
+        if (status == ISourceCore.Status.OPEN || isDepositRequestRejected(batchId)) {
+            shares = redeem_.accountRequested[sender];
+            redeem_.requested -= shares;
+            delete redeem_.accountRequested[sender];
+            asset().mint(sender, shares);
+            emit RedeemRequestCanceled(sender, batchId, shares);
+        } else {
+            revert InvalidStatus();
+        }
     }
 
     /// @inheritdoc ISourceCore

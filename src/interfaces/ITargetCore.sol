@@ -18,6 +18,10 @@ interface ITargetCore is ICore {
 
     function depositBatchShares(uint256 batchId) external view returns (uint256);
 
+    function depositBatchAssets(uint256 batchId) external view returns (uint256);
+
+    function redeemBatchShares(uint256 batchId) external view returns (uint256);
+
     function isRedeemBatchReceived(uint256 batchId) external view returns (bool);
 
     function claimBatchCount(uint256 batchId) external view returns (uint256);
@@ -46,6 +50,12 @@ interface ITargetCore is ICore {
     function slash(uint256 assets) external payable;
 
     function pushSlashing(uint256 index) external payable;
+
+    function rejectDepositBatch(uint256 batchId) external payable;
+
+    function retryPushDepositBatch(uint256 batchId) external payable;
+
+    function rejectRedeemBatch(uint256 batchId) external payable;
 
     event RedeemBatchRejected(uint256 indexed batchId, uint256 value);
 

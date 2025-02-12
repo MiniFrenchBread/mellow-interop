@@ -116,6 +116,12 @@ interface ISourceCore is ICore {
 
     function claimableRedeemsOf(address user, uint256[] calldata batchIds) external view returns (uint256 assets);
 
+    function cancelRedeemRequest(uint256 batchId) external returns (uint256 shares);
+
+    function cancelDepositRequest(uint256 batchId) external returns (uint256 assets);
+
+    function rejectedMessages(uint256 id) external view returns (bool);
+
     event BurnerSet(address indexed burner);
 
     event LimitSet(uint256 newLimit);
@@ -147,4 +153,8 @@ interface ISourceCore is ICore {
     event RedeemBatchPushRetried(uint256 indexed batchId);
 
     event RedeemsClaimed(address indexed sender, address indexed recipient, uint256 assets);
+
+    event DepositRequestCanceled(address indexed sender, uint256 indexed batchId, uint256 indexed assets);
+
+    event RedeemRequestCanceled(address indexed sender, uint256 indexed batchId, uint256 indexed shares);
 }
