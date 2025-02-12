@@ -1,0 +1,33 @@
+final commit hash: https://github.com/mellow-finance/mellow-interop/commit/e761303c172851befa020d5fd2faceed83028009
+
+
+Findings
+5.1/CS-MINT-001 Claim Gives Incorrect Number of Tokens
+Status: Fixed
+5.2/CS-MINT-002 Retry Deposit Can Mint Unbacked Tokens
+Status: Fixed
+5.3/CS-MINT-003 LayerZero Message Queue Can Block
+Status: Fixed / Acknowledged
+Description of changes:  
+Мы добавили отдельный контракт Delegator, который будет являтся owner/delegator в LayerZeroAdapter. Основная суть этого контракта - добавить отдельную роль operator, которая будет обрабатывать вызовы oapp.clear в случае необходимости.
+Также добавлен whitelist на executors. На практике все функции lzReceive будет вызывать наш выделенный operator, он же и gasReceiver с необходимым газом.
+enforcedOptions также будут достаточными, а minDepositValue и minRedeemValue будут ненулевыми и изменяться в зависимости от активности депозитов и выводов из системы.
+Также в TargetCore добавлены две функции - rejectDepositBatch и rejectRedeemBatch, а логика орбаботки deposits and redemptions in targetCore также изменена.
+Теперь при получении сообщения в _lzReceive, реальный deposit или redeem call не выполняется, а лишь записывается информация об этом. Далее сам вызов делается в отдельных функциях (pushDepositBatch и claim).
+Если эти две функции (pushDepositBatch, claim) не могут быть исполнены по какой-либо причине (введен deposit / withdrawal lock, неожиданное поведение vault контракта, e.t.c), то у пользователя с хотя бы правами оператора есть возможность 
+вызвать rejectDepositBatch / rejectRedeemBatch, чтобы передать об этом информацию на source chain. При этом на source chain добавлена обработка reject типа сообщения, при котором пользователи могут заклеймить свои assets / shares в зависимости от типа действия.
+
+
+5.4/CS-MINT-004 pushRedeem Timestamp Not Set
+Status: Fixed
+5.5/CS-MINT-005 Retry Slash Uses Incorrect Message Type
+Status: Fixed
+5.6/CS-MINT-006 Unreachable Code
+Status: Fixed
+Informational
+6.1/CS-MINT-007 CEI Pattern Not Followed
+Status: Fixed
+6.2/CS-MINT-008 Minimum ETH Value Checks Are Duplicated
+Status: Fixed
+6.3/CS-MINT-009 Unused Struct Field
+Status: Fixed

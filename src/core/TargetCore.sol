@@ -23,6 +23,8 @@ contract TargetCore is ITargetCore, Core {
     mapping(uint256 batchId => uint256) public depositBatchAssets;
     /// @inheritdoc ITargetCore
     mapping(uint256 batchId => bool) public isDepositBatchReceived;
+    /// @inheritdoc ITargetCore
+    mapping(uint256 batchId => bool) public isDepositBatchRejected;
 
     /// @inheritdoc ITargetCore
     mapping(uint256 batchId => address) public redeemClaimers;
@@ -30,6 +32,8 @@ contract TargetCore is ITargetCore, Core {
     mapping(uint256 batchId => uint256) public redeemBatchShares;
     /// @inheritdoc ITargetCore
     mapping(uint256 batchId => bool) public isRedeemBatchReceived;
+    /// @inheritdoc ITargetCore
+    mapping(uint256 batchId => bool) public isRedeemBatchRejected;
 
     /// @inheritdoc ITargetCore
     mapping(uint256 batchId => uint256) public claimBatchCount;
@@ -77,8 +81,12 @@ contract TargetCore is ITargetCore, Core {
 
     /// @inheritdoc ITargetCore
     function rejectRedeemBatch(uint256 batchId) external payable atLeastOperator {
-        if (!isRedeemBatchReceived[batchId] || redeemClaimers[batchId] != address(0)) {
-            revert Forbidden();
+        if (!isRedeemBatchRejected[batchId]) {
+            if (!isRedeemBatchReceived[batchId] || redeemClaimers[batchId] != address(0)) {
+                revert Forbidden();
+            }
+            delete isRedeemBatchReceived[batchId];
+            isRedeemBatchRejected[batchId] = true;
         }
         _sendMessage(IAdapter.MessageType.REJECT, abi.encode(getId(IAdapter.MessageType.REDEEM, batchId)), msg.value);
         emit RedeemBatchRejected(batchId, msg.value);
@@ -118,8 +126,13 @@ contract TargetCore is ITargetCore, Core {
 
     /// @inheritdoc ITargetCore
     function rejectDepositBatch(uint256 batchId) external payable atLeastOperator {
-        if (!isDepositBatchReceived[batchId] || depositBatchAssets[batchId] == 0) {
-            revert Forbidden();
+        if (!isDepositBatchRejected[batchId]) {
+            if (!isDepositBatchReceived[batchId] || depositBatchAssets[batchId] == 0) {
+                revert Forbidden();
+            }
+            delete isDepositBatchReceived[batchId];
+            delete depositBatchAssets[batchId];
+            isDepositBatchRejected[batchId] = true;
         }
         _sendMessage(IAdapter.MessageType.REJECT, abi.encode(getId(IAdapter.MessageType.DEPOSIT, batchId)), msg.value);
         emit DepositBatchRejected(batchId, msg.value);

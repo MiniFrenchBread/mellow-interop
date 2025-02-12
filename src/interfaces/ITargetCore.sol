@@ -32,6 +32,10 @@ interface ITargetCore is ICore {
 
     function slashingRequests() external view returns (uint256);
 
+    function isDepositBatchRejected(uint256 batchId) external view returns (bool);
+
+    function isRedeemBatchRejected(uint256 batchId) external view returns (bool);
+
     function initialize(
         address admin_,
         address vault_,
