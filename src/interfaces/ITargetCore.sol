@@ -14,21 +14,19 @@ interface ITargetCore is ICore {
 
     function redeemClaimers(uint256 batchId) external view returns (address);
 
-    function isDepositBatchCompleted(uint256 batchId) external view returns (bool);
+    function isDepositBatchReceived(uint256 batchId) external view returns (bool);
 
     function depositBatchShares(uint256 batchId) external view returns (uint256);
 
-    function depositBatchValues(uint256 batchId) external view returns (uint256);
+    function isRedeemBatchReceived(uint256 batchId) external view returns (bool);
 
-    function isRedeemBatchCompleted(uint256 batchId) external view returns (bool);
+    function claimBatchCount(uint256 batchId) external view returns (uint256);
 
-    function claimsCount(uint256 batchId) external view returns (uint256);
+    function claimBatchAssets(uint256 batchId, uint256 index) external view returns (uint256);
 
-    function claims(uint256 batchId, uint256 index) external view returns (uint256);
+    function slashingRequests(uint256 index) external view returns (uint256);
 
-    function slashingEvents(uint256 index) external view returns (uint256);
-
-    function slashings() external view returns (uint256);
+    function slashingRequets() external view returns (uint256);
 
     function initialize(
         address admin_,
@@ -43,11 +41,13 @@ interface ITargetCore is ICore {
 
     function retryClaim(uint256 batchId, uint256 index) external payable;
 
-    function pushDeposit(uint256 batchId) external payable;
+    function pushDepositBatch(uint256 batchId) external payable;
 
     function slash(uint256 assets) external payable;
 
-    function retrySlash(uint256 index) external payable;
+    function pushSlashing(uint256 index) external payable;
+
+    event RedeemBatchRejected(uint256 indexed batchId, uint256 value);
 
     event Claim(uint256 indexed batchId, uint256 indexed index, uint256 assets);
 
@@ -55,7 +55,9 @@ interface ITargetCore is ICore {
 
     event DepositBatchPushed(uint256 indexed batchId, uint256 shares, uint256 value);
 
-    event Slashing(uint256 indexed index, uint256 assets);
+    event DepositBatchRejected(uint256 indexed batchId, uint256 value);
 
-    event SlashingRetried(uint256 indexed index, uint256 assets);
+    event SlashingRequested(uint256 indexed index, uint256 assets);
+
+    event SlashingPushed(uint256 indexed index, uint256 assets);
 }

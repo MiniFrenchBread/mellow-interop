@@ -9,7 +9,8 @@ interface IAdapter {
         DEPOSIT,
         REDEEM,
         CLAIM,
-        SLASHING
+        SLASHING,
+        REJECT
     }
 
     function core() external view returns (ICore);

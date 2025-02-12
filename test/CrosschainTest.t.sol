@@ -20,7 +20,6 @@ contract CrosschainTest is TestHelperOz5 {
     address public sourceCoreOwner = vm.createWallet("source-core-owner").addr;
 
     MockVault public vault;
-    MockClaimer public claimer;
 
     function setupOApps(bytes memory _oappCreationCode, address[2] memory cores, address gasReceiver_)
         public
@@ -45,7 +44,7 @@ contract CrosschainTest is TestHelperOz5 {
         super.setUp();
         setUpEndpoints(2, LibraryType.UltraLightNode);
 
-        claimer = new MockClaimer();
+        address claimer = address(1324);
         targetCore = TargetCore(
             address(
                 new TransparentUpgradeableProxy(
@@ -128,7 +127,7 @@ contract CrosschainTest is TestHelperOz5 {
         deal(wsteth, user, 1 ether);
         deal(user, 2 ether);
         IERC20(wsteth).approve(address(sourceCore), 1 ether);
-        uint256 batchId = sourceCore.deposit{value: 0.001 ether}(1 ether, user);
+        uint256 batchId = sourceCore.requestDeposit{value: 0.001 ether}(1 ether);
 
         uint256 targetFee = targetAdapter.quoteMessage(
             IAdapter.MessageType.DEPOSIT,
@@ -159,7 +158,7 @@ contract CrosschainTest is TestHelperOz5 {
             deal(wsteth, user, 1 ether);
             deal(user, 2 ether);
             IERC20(wsteth).approve(address(sourceCore), 1 ether);
-            uint256 batchId = sourceCore.deposit{value: 0.001 ether}(1 ether, user);
+            uint256 batchId = sourceCore.requestDeposit{value: 0.001 ether}(1 ether);
 
             uint256 targetFee = targetAdapter.quoteMessage(
                 IAdapter.MessageType.DEPOSIT,
@@ -185,7 +184,7 @@ contract CrosschainTest is TestHelperOz5 {
 
             vm.startPrank(user);
             deal(user, 1 ether);
-            targetCore.pushDeposit{value: 1 ether}(batchId);
+            targetCore.pushDepositBatch{value: 1 ether}(batchId);
 
             vm.stopPrank();
             verifyPackets(sourceEid, addressToBytes32(address(sourceAdapter)));
@@ -194,14 +193,14 @@ contract CrosschainTest is TestHelperOz5 {
         vm.startPrank(user);
         sourceCore.claimDeposits(new uint256[](1), user);
 
-        sourceCore.redeem(1 ether, user);
+        sourceCore.requestRedeem(1 ether);
         {
             deal(user, 2 ether);
             sourceCore.pushRedeemBatch{value: 1 ether}(0);
 
             verifyPackets(targetEid, addressToBytes32(address(targetAdapter)));
 
-            targetCore.claim{value: 1 ether}(0, abi.encode(new uint256[](0), new uint256[][](0), type(uint256).max));
+            targetCore.claim{value: 1 ether}(0, new bytes(0));
 
             verifyPackets(sourceEid, addressToBytes32(address(sourceAdapter)));
 

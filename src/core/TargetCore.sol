@@ -18,23 +18,27 @@ contract TargetCore is ITargetCore, Core {
     RedeemClaimer public redeemClaimerSingleton;
 
     /// @inheritdoc ITargetCore
-    mapping(uint256 batchId => address) public redeemClaimers;
-    /// @inheritdoc ITargetCore
-    mapping(uint256 batchId => bool) public isDepositBatchCompleted;
-    /// @inheritdoc ITargetCore
     mapping(uint256 batchId => uint256) public depositBatchShares;
     /// @inheritdoc ITargetCore
-    mapping(uint256 batchId => uint256) public depositBatchValues;
+    mapping(uint256 batchId => uint256) public depositBatchAssets;
     /// @inheritdoc ITargetCore
-    mapping(uint256 batchId => bool) public isRedeemBatchCompleted;
+    mapping(uint256 batchId => bool) public isDepositBatchReceived;
+
     /// @inheritdoc ITargetCore
-    mapping(uint256 batchId => uint256) public claimsCount;
+    mapping(uint256 batchId => address) public redeemClaimers;
     /// @inheritdoc ITargetCore
-    mapping(uint256 batchId => mapping(uint256 index => uint256 assets)) public claims;
+    mapping(uint256 batchId => uint256) public redeemBatchShares;
     /// @inheritdoc ITargetCore
-    mapping(uint256 index => uint256 assets) public slashingEvents;
+    mapping(uint256 batchId => bool) public isRedeemBatchReceived;
+
     /// @inheritdoc ITargetCore
-    uint256 public slashings = 0;
+    mapping(uint256 batchId => uint256) public claimBatchCount;
+    /// @inheritdoc ITargetCore
+    mapping(uint256 batchId => mapping(uint256 index => uint256 assets)) public claimBatchAssets;
+    /// @inheritdoc ITargetCore
+    mapping(uint256 index => uint256 assets) public slashingRequests;
+    /// @inheritdoc ITargetCore
+    uint256 public slashingRequets = 0;
 
     constructor(bytes32 name_, uint256 version_) CoreStorage(name_, version_) {
         _disableInitializers();
@@ -57,49 +61,54 @@ contract TargetCore is ITargetCore, Core {
     function _receiveMessage(IAdapter.MessageType messageType, bytes calldata message) internal virtual override {
         (uint256 batchId, uint256 amount) = abi.decode(message, (uint256, uint256));
         if (messageType == IAdapter.MessageType.DEPOSIT) {
-            if (isDepositBatchCompleted[batchId]) {
-                return;
+            if (!isDepositBatchReceived[batchId]) {
+                isDepositBatchReceived[batchId] = true;
+                depositBatchAssets[batchId] = amount;
             }
-
-            OwnedERC20 asset_ = asset();
-            asset_.mint(address(this), amount);
-            IERC20(asset_).safeIncreaseAllowance(vault, amount);
-            isDepositBatchCompleted[batchId] = true;
-            depositBatchValues[batchId] = msg.value;
-            depositBatchShares[batchId] = IERC4626(vault).deposit(amount, address(this));
         } else if (messageType == IAdapter.MessageType.REDEEM) {
-            if (isRedeemBatchCompleted[batchId]) {
-                return;
+            if (!isRedeemBatchReceived[batchId]) {
+                isRedeemBatchReceived[batchId] = true;
+                redeemBatchShares[batchId] = amount;
             }
-            address claimer = Clones.cloneDeterministic(address(redeemClaimerSingleton), bytes32(batchId));
-            redeemClaimers[batchId] = address(claimer);
-            isRedeemBatchCompleted[batchId] = true;
-            IERC4626(vault).redeem(amount, address(claimer), address(this));
         } else {
             revert InvalidMessageType();
         }
     }
 
     /// @inheritdoc ITargetCore
+    function rejectRedeemBatch(uint256 batchId) external payable atLeastOperator {
+        if (!isRedeemBatchReceived[batchId] || redeemClaimers[batchId] != address(0)) {
+            revert Forbidden();
+        }
+        _sendMessage(IAdapter.MessageType.REJECT, abi.encode(getId(IAdapter.MessageType.REDEEM, batchId)), msg.value);
+        emit RedeemBatchRejected(batchId, msg.value);
+    }
+
+    /// @inheritdoc ITargetCore
     function claim(uint256 batchId, bytes calldata data) external payable atLeastOperator returns (uint256 assets) {
+        if (!isRedeemBatchReceived[batchId]) {
+            revert Forbidden();
+        }
+
         address claimer = redeemClaimers[batchId];
         if (claimer == address(0)) {
-            revert Forbidden();
+            claimer = Clones.cloneDeterministic(address(redeemClaimerSingleton), bytes32(batchId));
+            redeemClaimers[batchId] = address(claimer);
+            IERC4626(vault).redeem(redeemBatchShares[batchId], address(claimer), address(this));
         }
         assets = RedeemClaimer(claimer).claim(data);
-        asset().burn(address(this), assets);
-        if (assets == 0) {
-            revert Forbidden();
+        if (assets != 0) {
+            asset().burn(address(this), assets);
+            uint256 index = claimBatchCount[batchId]++;
+            claimBatchAssets[batchId][index] = assets;
+            _sendMessage(IAdapter.MessageType.CLAIM, abi.encode(batchId, index, assets), msg.value);
+            emit Claim(batchId, index, assets);
         }
-        uint256 index = claimsCount[batchId]++;
-        claims[batchId][index] = assets;
-        _sendMessage(IAdapter.MessageType.CLAIM, abi.encode(batchId, index, assets), msg.value);
-        emit Claim(batchId, index, assets);
     }
 
     /// @inheritdoc ITargetCore
     function retryClaim(uint256 batchId, uint256 index) external payable atLeastOperator {
-        uint256 assets = claims[batchId][index];
+        uint256 assets = claimBatchAssets[batchId][index];
         if (assets == 0) {
             revert Forbidden();
         }
@@ -108,35 +117,56 @@ contract TargetCore is ITargetCore, Core {
     }
 
     /// @inheritdoc ITargetCore
-    function pushDeposit(uint256 batchId) external payable atLeastOperator {
+    function rejectDepositBatch(uint256 batchId) external payable atLeastOperator {
+        if (depositBatchShares[batchId] != 0 || depositBatchAssets[batchId] == 0) {
+            revert Forbidden();
+        }
+        _sendMessage(IAdapter.MessageType.REJECT, abi.encode(getId(IAdapter.MessageType.DEPOSIT, batchId)), msg.value);
+        emit DepositBatchRejected(batchId, msg.value);
+    }
+
+    /// @inheritdoc ITargetCore
+    function pushDepositBatch(uint256 batchId) external payable atLeastOperator {
+        uint256 assets = depositBatchAssets[batchId];
+        if (assets == 0) {
+            revert Forbidden();
+        }
+        delete depositBatchAssets[batchId];
+        OwnedERC20 asset_ = asset();
+        asset_.mint(address(this), assets);
+        IERC20(asset_).safeIncreaseAllowance(vault, assets);
+        uint256 shares = IERC4626(vault).deposit(assets, address(this));
+        depositBatchShares[batchId] = shares;
+
+        _sendMessage(IAdapter.MessageType.DEPOSIT, abi.encode(batchId, shares), msg.value);
+        emit DepositBatchPushed(batchId, shares, msg.value);
+    }
+
+    /// @inheritdoc ITargetCore
+    function retryPushDepositBatch(uint256 batchId) external payable atLeastOperator {
         uint256 shares = depositBatchShares[batchId];
         if (shares == 0) {
             revert Forbidden();
         }
-        uint256 value = depositBatchValues[batchId];
-        if (value != 0) {
-            delete depositBatchValues[batchId];
-        }
-        _sendMessage(IAdapter.MessageType.DEPOSIT, abi.encode(batchId, shares), msg.value + value);
+        _sendMessage(IAdapter.MessageType.DEPOSIT, abi.encode(batchId, shares), msg.value);
         emit DepositBatchPushed(batchId, shares, msg.value);
     }
 
     /// @inheritdoc ITargetCore
     function slash(uint256 assets) external payable onlyRole(BURNER_ROLE) {
         asset().burn(_msgSender(), assets);
-        uint256 index = slashings++;
-        slashingEvents[index] = assets;
-        _sendMessage(IAdapter.MessageType.SLASHING, abi.encode(index, assets), msg.value);
-        emit Slashing(index, assets);
+        uint256 index = slashingRequets++;
+        slashingRequests[index] = assets;
+        emit SlashingRequested(index, assets);
     }
 
     /// @inheritdoc ITargetCore
-    function retrySlash(uint256 index) external payable atLeastOperator {
-        uint256 assets = slashingEvents[index];
+    function pushSlashing(uint256 index) external payable atLeastOperator {
+        uint256 assets = slashingRequests[index];
         if (assets == 0) {
             revert Forbidden();
         }
         _sendMessage(IAdapter.MessageType.SLASHING, abi.encode(index, assets), msg.value);
-        emit SlashingRetried(index, assets);
+        emit SlashingPushed(index, assets);
     }
 }

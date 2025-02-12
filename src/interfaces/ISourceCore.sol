@@ -12,7 +12,6 @@ interface ISourceCore is ICore {
     }
 
     struct Request {
-        uint256 value;
         uint256 requested;
         uint256 processed;
         Status status;
@@ -55,13 +54,10 @@ interface ISourceCore is ICore {
 
     function depositBatches() external view returns (uint256);
 
-    function pushDepositsTimestamp(uint256 batchId) external view returns (uint256);
-
     function getDepositBatchInfo(uint256 batchId, address account)
         external
         view
         returns (
-            uint256 value,
             uint256 totalRequested,
             uint256 totalProcessed,
             Status status,
@@ -71,13 +67,10 @@ interface ISourceCore is ICore {
 
     function redeemBatches() external view returns (uint256);
 
-    function pushRedeemsTimestamp(uint256 batchId) external view returns (uint256);
-
     function getRedeemBatchInfo(uint256 batchId, address account)
         external
         view
         returns (
-            uint256 value,
             uint256 totalRequested,
             uint256 totalProcessed,
             Status status,
@@ -107,21 +100,17 @@ interface ISourceCore is ICore {
 
     function setMinRedeemValue(uint256 minRedeemValue_) external;
 
-    function deposit(uint256 assets, address receiver) external payable returns (uint256 batchId);
+    function requestDeposit(uint256 assets) external payable returns (uint256 batchId);
 
     function pushDepositBatch(uint256 batchId) external payable;
-
-    function retryPushDepositBatch(uint256 batchId) external payable;
 
     function claimDeposits(uint256[] calldata batchIds, address recipient) external returns (uint256 shares);
 
     function claimableDepositsOf(address user, uint256[] calldata batchIds) external view returns (uint256 assets);
 
-    function redeem(uint256 shares, address receiver) external payable returns (uint256 batchId);
+    function requestRedeem(uint256 shares) external payable returns (uint256 batchId);
 
     function pushRedeemBatch(uint256 batchId) external payable;
-
-    function retryPushRedeemBatch(uint256 batchId) external payable;
 
     function claimRedeems(uint256[] calldata batchIds, address recipient) external returns (uint256 assets);
 
@@ -143,7 +132,7 @@ interface ISourceCore is ICore {
 
     event MinRedeemValueSet(uint256 minRedeemValue);
 
-    event Deposit(address indexed sender, address indexed receiver, uint256 indexed batchId, uint256 value);
+    event DepositRequest(address indexed sender, uint256 indexed batchId, uint256 indexed value);
 
     event DepositBatchPushed(uint256 indexed batchId);
 
@@ -151,7 +140,7 @@ interface ISourceCore is ICore {
 
     event DepositsClaimed(address indexed sender, address indexed recipient, uint256 shares);
 
-    event Redeem(address indexed sender, address indexed receiver, uint256 indexed batchId, uint256 value);
+    event RedeemRequest(address indexed sender, uint256 indexed batchId, uint256 value);
 
     event RedeemBatchPushed(uint256 indexed batchId);
 

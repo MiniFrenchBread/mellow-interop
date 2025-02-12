@@ -34,16 +34,13 @@ contract SourceCore is ISourceCore, Core {
     /// @inheritdoc ISourceCore
     uint256 public depositBatches;
     /// @inheritdoc ISourceCore
-    mapping(uint256 batchId => uint256) public pushDepositsTimestamp;
-
-    /// @inheritdoc ISourceCore
     uint256 public redeemBatches;
-    /// @inheritdoc ISourceCore
-    mapping(uint256 batchId => uint256) public pushRedeemsTimestamp;
     /// @inheritdoc ISourceCore
     mapping(uint256 batchId => mapping(uint256 index => bool)) public isClaimCompleted;
     /// @inheritdoc ISourceCore
     mapping(uint256 index => bool) public isSlashingCompleted;
+
+    mapping(uint256 id => bool) public rejectedMessages;
 
     mapping(uint256 batchId => Request) private _deposits;
     mapping(uint256 batchId => Request) private _redeems;
@@ -114,7 +111,7 @@ contract SourceCore is ISourceCore, Core {
     }
 
     /// @inheritdoc ISourceCore
-    function deposit(uint256 assets, address receiver) external payable returns (uint256 batchId) {
+    function requestDeposit(uint256 assets) external payable nonReentrant returns (uint256 batchId) {
         address sender = _msgSender();
         if (depositPause || isDepositWhitelist && !depositorWhitelistStatus[sender]) {
             revert Forbidden();
@@ -133,52 +130,61 @@ contract SourceCore is ISourceCore, Core {
         if (deposit_.status == Status.CLOSED) {
             deposit_.status = Status.OPEN;
             deposit_.requested = assets;
-            deposit_.accountRequested[receiver] = assets;
-            deposit_.value = msg.value;
+            deposit_.accountRequested[sender] = assets;
         } else {
             deposit_.requested += assets;
-            deposit_.accountRequested[receiver] += assets;
-            deposit_.value += msg.value;
+            deposit_.accountRequested[sender] += assets;
         }
-        emit Deposit(sender, receiver, batchId, assets);
+        emit DepositRequest(sender, batchId, assets);
+    }
+
+    function cancelDepositRequest(uint256 batchId) external nonReentrant returns (uint256 assets) {
+        address sender = _msgSender();
+        underlyingAsset.safeTransferFrom(sender, address(this), assets);
+
+        batchId = depositBatches;
+        Request storage deposit_ = _deposits[batchId];
+        ISourceCore.Status status = deposit_.status;
+        if (status == ISourceCore.Status.OPEN) {
+            assets = deposit_.accountRequested[sender];
+            deposit_.requested -= assets;
+            delete deposit_.accountRequested[sender];
+            IERC20(underlyingAsset).safeTransfer(sender, assets);
+        } else if (isDepositRequestRejected(batchId)) {
+            assets = deposit_.accountRequested[sender];
+            deposit_.requested -= assets;
+            delete deposit_.accountRequested[sender];
+            IERC20(underlyingAsset).safeTransfer(sender, assets);
+        } else {
+            revert InvalidStatus();
+        }
     }
 
     /// @inheritdoc ISourceCore
-    function pushDepositBatch(uint256 batchId) external payable {
+    function pushDepositBatch(uint256 batchId) external payable nonReentrant {
         Request storage deposit_ = _deposits[batchId];
         if (deposit_.status != Status.OPEN) {
             revert InvalidStatus();
         }
-        if (batchId != 0 && _deposits[batchId - 1].status != Status.COMPLETED) {
+        if (batchId != 0 && _deposits[batchId - 1].status != Status.COMPLETED && !isDepositRequestRejected(batchId - 1))
+        {
             revert InvalidStatus();
         }
         if (deposit_.requested == 0) {
             revert Forbidden();
         }
-        uint256 depositValue = deposit_.value + msg.value;
         depositBatches++;
         deposit_.status = Status.PENDING;
-        deposit_.value = 0;
-        _sendMessage(IAdapter.MessageType.DEPOSIT, abi.encode(batchId, deposit_.requested), depositValue);
+        _sendMessage(IAdapter.MessageType.DEPOSIT, abi.encode(batchId, deposit_.requested), msg.value);
         emit DepositBatchPushed(batchId);
     }
 
     /// @inheritdoc ISourceCore
-    function retryPushDepositBatch(uint256 batchId) external payable atLeastOperator {
-        Request storage deposit_ = _deposits[batchId];
-        if (deposit_.status != Status.PENDING) {
-            revert InvalidStatus();
-        }
-        if (deposit_.requested == 0) {
-            revert Forbidden();
-        }
-        uint256 depositValue = msg.value;
-        _sendMessage(IAdapter.MessageType.DEPOSIT, abi.encode(batchId, deposit_.requested), depositValue);
-        emit DepositBatchPushRetried(batchId);
-    }
-
-    /// @inheritdoc ISourceCore
-    function claimDeposits(uint256[] calldata batchIds, address recipient) external returns (uint256 shares) {
+    function claimDeposits(uint256[] calldata batchIds, address recipient)
+        external
+        nonReentrant
+        returns (uint256 shares)
+    {
         address sender = _msgSender();
         for (uint256 i = 0; i < batchIds.length; i++) {
             Request storage deposit_ = _deposits[batchIds[i]];
@@ -205,7 +211,7 @@ contract SourceCore is ISourceCore, Core {
     }
 
     /// @inheritdoc ISourceCore
-    function redeem(uint256 shares, address receiver) external payable returns (uint256 batchId) {
+    function requestRedeem(uint256 shares) external payable nonReentrant returns (uint256 batchId) {
         if (redeemPause) {
             revert Forbidden();
         }
@@ -219,52 +225,39 @@ contract SourceCore is ISourceCore, Core {
         if (redeem_.status == Status.CLOSED) {
             redeem_.status = Status.OPEN;
             redeem_.requested = shares;
-            redeem_.accountRequested[receiver] = shares;
-            redeem_.value = msg.value;
+            redeem_.accountRequested[sender] = shares;
         } else if (redeem_.status == Status.OPEN) {
             redeem_.requested += shares;
-            redeem_.accountRequested[receiver] += shares;
-            redeem_.value += msg.value;
+            redeem_.accountRequested[sender] += shares;
         }
-        emit Redeem(sender, receiver, batchId, shares);
+        emit RedeemRequest(sender, batchId, shares);
     }
 
     /// @inheritdoc ISourceCore
-    function pushRedeemBatch(uint256 batchId) external payable {
+    function pushRedeemBatch(uint256 batchId) external payable nonReentrant {
         Request storage redeem_ = _redeems[batchId];
         if (redeem_.status != Status.OPEN) {
             revert InvalidStatus();
         }
-        if (batchId != 0 && _redeems[batchId - 1].status != Status.COMPLETED) {
-            revert InvalidStatus();
-        }
-        if (redeem_.requested == 0) {
-            revert Forbidden();
-        }
-        uint256 redeemValue = redeem_.value + msg.value;
-        redeemBatches++;
-        redeem_.status = Status.PENDING;
-        redeem_.value = 0;
-        _sendMessage(IAdapter.MessageType.REDEEM, abi.encode(batchId, redeem_.requested), redeemValue);
-        emit RedeemBatchPushed(batchId);
-    }
-
-    /// @inheritdoc ISourceCore
-    function retryPushRedeemBatch(uint256 batchId) external payable atLeastOperator {
-        Request storage redeem_ = _redeems[batchId];
-        if (redeem_.status != Status.PENDING) {
+        if (batchId != 0 && _redeems[batchId - 1].status != Status.COMPLETED && !isRedeemRequestRejected(batchId - 1)) {
             revert InvalidStatus();
         }
         if (redeem_.requested == 0) {
             revert Forbidden();
         }
         uint256 redeemValue = msg.value;
+        redeemBatches++;
+        redeem_.status = Status.PENDING;
         _sendMessage(IAdapter.MessageType.REDEEM, abi.encode(batchId, redeem_.requested), redeemValue);
-        emit RedeemBatchPushRetried(batchId);
+        emit RedeemBatchPushed(batchId);
     }
 
     /// @inheritdoc ISourceCore
-    function claimRedeems(uint256[] calldata batchIds, address recipient) external returns (uint256 assets) {
+    function claimRedeems(uint256[] calldata batchIds, address recipient)
+        external
+        nonReentrant
+        returns (uint256 assets)
+    {
         address sender = _msgSender();
         for (uint256 i = 0; i < batchIds.length; i++) {
             Request storage redeem_ = _redeems[batchIds[i]];
@@ -288,6 +281,14 @@ contract SourceCore is ISourceCore, Core {
             underlyingAsset.safeTransfer(recipient, assets);
         }
         emit RedeemsClaimed(sender, recipient, assets);
+    }
+
+    function isDepositRequestRejected(uint256 batchId) public view returns (bool) {
+        return rejectedMessages[getId(IAdapter.MessageType.DEPOSIT, batchId)];
+    }
+
+    function isRedeemRequestRejected(uint256 batchId) public view returns (bool) {
+        return rejectedMessages[getId(IAdapter.MessageType.REDEEM, batchId)];
     }
 
     /// @inheritdoc ISourceCore
@@ -337,7 +338,6 @@ contract SourceCore is ISourceCore, Core {
         public
         view
         returns (
-            uint256 value,
             uint256 totalRequested,
             uint256 totalProcessed,
             Status status,
@@ -346,7 +346,6 @@ contract SourceCore is ISourceCore, Core {
         )
     {
         Request storage deposit_ = _deposits[batchId];
-        value = deposit_.value;
         totalRequested = deposit_.requested;
         totalProcessed = deposit_.processed;
         status = deposit_.status;
@@ -359,7 +358,6 @@ contract SourceCore is ISourceCore, Core {
         public
         view
         returns (
-            uint256 value,
             uint256 totalRequested,
             uint256 totalProcessed,
             Status status,
@@ -368,7 +366,6 @@ contract SourceCore is ISourceCore, Core {
         )
     {
         Request storage redeem_ = _redeems[batchId];
-        value = redeem_.value;
         totalRequested = redeem_.requested;
         totalProcessed = redeem_.processed;
         status = redeem_.status;
@@ -425,6 +422,9 @@ contract SourceCore is ISourceCore, Core {
             }
             isSlashingCompleted[index] = true;
             underlyingAsset.safeTransfer(burner, amount);
+        } else if (messageType == IAdapter.MessageType.REJECT) {
+            uint256 id = abi.decode(message, (uint256));
+            rejectedMessages[id] = true;
         } else {
             revert InvalidMessageType();
         }

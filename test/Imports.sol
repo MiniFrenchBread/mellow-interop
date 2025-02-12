@@ -21,6 +21,5 @@ import {TransparentUpgradeableProxy} from "@openzeppelin/contracts/proxy/transpa
 import "./Constants.sol";
 
 import "../src/interfaces/IAdapter.sol";
-import "./MockClaimer.sol";
 import "./MockVault.sol";
 import "forge-std/console2.sol";

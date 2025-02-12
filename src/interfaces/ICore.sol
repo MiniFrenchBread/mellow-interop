@@ -4,6 +4,7 @@ pragma solidity 0.8.25;
 
 import "./ICoreStorage.sol";
 import "@openzeppelin/contracts-upgradeable/access/extensions/AccessControlEnumerableUpgradeable.sol";
+import "@openzeppelin/contracts-upgradeable/utils/ReentrancyGuardUpgradeable.sol";
 import "@openzeppelin/contracts/interfaces/IERC4626.sol";
 import "@openzeppelin/contracts/proxy/Clones.sol";
 import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
@@ -22,6 +23,12 @@ interface ICore is ICoreStorage {
     function setAdapter(address newAdapter) external;
 
     function receiveMessage(IAdapter.MessageType messageType, bytes calldata message) external payable;
+
+    function collect() external;
+
+    function gasReceiver() external view returns (address);
+
+    function getId(IAdapter.MessageType messageType, uint256 batchId) external view returns (uint256);
 
     event MessageReceived(IAdapter.MessageType messageType, bytes message, uint256 value);
 

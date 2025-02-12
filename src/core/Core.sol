@@ -5,7 +5,7 @@ pragma solidity 0.8.25;
 import "../interfaces/ICore.sol";
 import "./CoreStorage.sol";
 
-abstract contract Core is ICore, CoreStorage, AccessControlEnumerableUpgradeable {
+abstract contract Core is ICore, CoreStorage, AccessControlEnumerableUpgradeable, ReentrancyGuardUpgradeable {
     /// @inheritdoc ICore
     bytes32 public constant OPERATOR_ROLE = keccak256("OPERATOR_ROLE");
 
@@ -23,12 +23,36 @@ abstract contract Core is ICore, CoreStorage, AccessControlEnumerableUpgradeable
     }
 
     /// @inheritdoc ICore
-    function receiveMessage(IAdapter.MessageType messageType, bytes calldata message) external payable virtual {
+    function receiveMessage(IAdapter.MessageType messageType, bytes calldata message)
+        external
+        payable
+        virtual
+        nonReentrant
+    {
         if (_msgSender() != address(adapter())) {
             revert Forbidden();
         }
         emit MessageReceived(messageType, message, msg.value);
         _receiveMessage(messageType, message);
+    }
+
+    /// @inheritdoc ICore
+    function collect() external nonReentrant {
+        address receiver = adapter().gasReceiver();
+        if (_msgSender() != receiver) {
+            revert Forbidden();
+        }
+        Address.sendValue(payable(receiver), address(this).balance);
+    }
+
+    /// @inheritdoc ICore
+    function gasReceiver() public view returns (address) {
+        return adapter().gasReceiver();
+    }
+
+    /// @inheritdoc ICore
+    function getId(IAdapter.MessageType messageType, uint256 batchId) public pure returns (uint256) {
+        return (uint256(messageType) << 128) | batchId;
     }
 
     function _receiveMessage(IAdapter.MessageType messageType, bytes calldata message) internal virtual;
@@ -53,6 +77,8 @@ abstract contract Core is ICore, CoreStorage, AccessControlEnumerableUpgradeable
         internal
         onlyInitializing
     {
+        __ReentrancyGuard_init();
+        __AccessControlEnumerable_init();
         _grantRole(DEFAULT_ADMIN_ROLE, admin_);
         _setAdapter(adapter_);
         address asset_ = address(new OwnedERC20(name_, symbol_, address(this)));
