@@ -38,7 +38,7 @@ abstract contract Core is ICore, CoreStorage, AccessControlEnumerableUpgradeable
 
     /// @inheritdoc ICore
     function collect() external nonReentrant {
-        address receiver = adapter().gasReceiver();
+        address receiver = gasReceiver();
         if (_msgSender() != receiver) {
             revert Forbidden();
         }

@@ -36,9 +36,9 @@ contract TargetCore is ITargetCore, Core {
     /// @inheritdoc ITargetCore
     mapping(uint256 batchId => mapping(uint256 index => uint256 assets)) public claimBatchAssets;
     /// @inheritdoc ITargetCore
-    mapping(uint256 index => uint256 assets) public slashingRequests;
+    mapping(uint256 index => uint256 assets) public slashingRequestsAt;
     /// @inheritdoc ITargetCore
-    uint256 public slashingRequets = 0;
+    uint256 public slashingRequests = 0;
 
     constructor(bytes32 name_, uint256 version_) CoreStorage(name_, version_) {
         _disableInitializers();
@@ -118,7 +118,7 @@ contract TargetCore is ITargetCore, Core {
 
     /// @inheritdoc ITargetCore
     function rejectDepositBatch(uint256 batchId) external payable atLeastOperator {
-        if (depositBatchShares[batchId] != 0 || depositBatchAssets[batchId] == 0) {
+        if (!isDepositBatchReceived[batchId] || depositBatchAssets[batchId] == 0) {
             revert Forbidden();
         }
         _sendMessage(IAdapter.MessageType.REJECT, abi.encode(getId(IAdapter.MessageType.DEPOSIT, batchId)), msg.value);
@@ -127,9 +127,12 @@ contract TargetCore is ITargetCore, Core {
 
     /// @inheritdoc ITargetCore
     function pushDepositBatch(uint256 batchId) external payable atLeastOperator {
+        if (!isDepositBatchReceived[batchId]) {
+            revert Forbidden();
+        }
         uint256 assets = depositBatchAssets[batchId];
         if (assets == 0) {
-            revert Forbidden();
+            return;
         }
         delete depositBatchAssets[batchId];
         OwnedERC20 asset_ = asset();
@@ -155,14 +158,14 @@ contract TargetCore is ITargetCore, Core {
     /// @inheritdoc ITargetCore
     function slash(uint256 assets) external payable onlyRole(BURNER_ROLE) {
         asset().burn(_msgSender(), assets);
-        uint256 index = slashingRequets++;
-        slashingRequests[index] = assets;
+        uint256 index = slashingRequests++;
+        slashingRequestsAt[index] = assets;
         emit SlashingRequested(index, assets);
     }
 
     /// @inheritdoc ITargetCore
     function pushSlashing(uint256 index) external payable atLeastOperator {
-        uint256 assets = slashingRequests[index];
+        uint256 assets = slashingRequestsAt[index];
         if (assets == 0) {
             revert Forbidden();
         }

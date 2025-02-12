@@ -28,9 +28,9 @@ interface ITargetCore is ICore {
 
     function claimBatchAssets(uint256 batchId, uint256 index) external view returns (uint256);
 
-    function slashingRequests(uint256 index) external view returns (uint256);
+    function slashingRequestsAt(uint256 index) external view returns (uint256);
 
-    function slashingRequets() external view returns (uint256);
+    function slashingRequests() external view returns (uint256);
 
     function initialize(
         address admin_,

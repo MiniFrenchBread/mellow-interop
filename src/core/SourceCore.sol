@@ -174,6 +174,23 @@ contract SourceCore is ISourceCore, Core {
     }
 
     /// @inheritdoc ISourceCore
+    function retryPushDepositBatch(uint256 batchId) external payable nonReentrant {
+        Request storage deposit_ = _deposits[batchId];
+        if (deposit_.status != Status.PENDING || isDepositRequestRejected(batchId)) {
+            revert InvalidStatus();
+        }
+        if (batchId != 0 && _deposits[batchId - 1].status != Status.COMPLETED && !isDepositRequestRejected(batchId - 1))
+        {
+            revert InvalidStatus();
+        }
+        if (deposit_.requested == 0) {
+            revert Forbidden();
+        }
+        _sendMessage(IAdapter.MessageType.DEPOSIT, abi.encode(batchId, deposit_.requested), msg.value);
+        emit DepositBatchPushed(batchId);
+    }
+
+    /// @inheritdoc ISourceCore
     function claimDeposits(uint256[] calldata batchIds, address recipient)
         external
         nonReentrant
@@ -232,7 +249,7 @@ contract SourceCore is ISourceCore, Core {
         address sender = _msgSender();
         Request storage redeem_ = _redeems[batchId];
         ISourceCore.Status status = redeem_.status;
-        if (status == ISourceCore.Status.OPEN || isDepositRequestRejected(batchId)) {
+        if (status == ISourceCore.Status.OPEN || isRedeemRequestRejected(batchId)) {
             shares = redeem_.accountRequested[sender];
             redeem_.requested -= shares;
             delete redeem_.accountRequested[sender];
@@ -259,6 +276,22 @@ contract SourceCore is ISourceCore, Core {
         redeemBatches++;
         redeem_.status = Status.PENDING;
         _sendMessage(IAdapter.MessageType.REDEEM, abi.encode(batchId, redeem_.requested), redeemValue);
+        emit RedeemBatchPushed(batchId);
+    }
+
+    /// @inheritdoc ISourceCore
+    function retryPushRedeemBatch(uint256 batchId) external payable nonReentrant {
+        Request storage redeem_ = _redeems[batchId];
+        if (redeem_.status != Status.PENDING || isRedeemRequestRejected(batchId)) {
+            revert InvalidStatus();
+        }
+        if (batchId != 0 && _redeems[batchId - 1].status != Status.COMPLETED && !isRedeemRequestRejected(batchId - 1)) {
+            revert InvalidStatus();
+        }
+        if (redeem_.requested == 0) {
+            revert Forbidden();
+        }
+        _sendMessage(IAdapter.MessageType.REDEEM, abi.encode(batchId, redeem_.requested), msg.value);
         emit RedeemBatchPushed(batchId);
     }
 
@@ -293,10 +326,12 @@ contract SourceCore is ISourceCore, Core {
         emit RedeemsClaimed(sender, recipient, assets);
     }
 
+    /// @inheritdoc ISourceCore
     function isDepositRequestRejected(uint256 batchId) public view returns (bool) {
         return rejectedMessages[getId(IAdapter.MessageType.DEPOSIT, batchId)];
     }
 
+    /// @inheritdoc ISourceCore
     function isRedeemRequestRejected(uint256 batchId) public view returns (bool) {
         return rejectedMessages[getId(IAdapter.MessageType.REDEEM, batchId)];
     }

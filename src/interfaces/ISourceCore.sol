@@ -122,6 +122,14 @@ interface ISourceCore is ICore {
 
     function rejectedMessages(uint256 id) external view returns (bool);
 
+    function isDepositRequestRejected(uint256 batchId) external view returns (bool);
+
+    function isRedeemRequestRejected(uint256 batchId) external view returns (bool);
+
+    function retryPushRedeemBatch(uint256 batchId) external payable;
+
+    function retryPushDepositBatch(uint256 batchId) external payable;
+
     event BurnerSet(address indexed burner);
 
     event LimitSet(uint256 newLimit);

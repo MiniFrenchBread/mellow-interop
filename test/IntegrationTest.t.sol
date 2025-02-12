@@ -4,7 +4,9 @@ pragma solidity 0.8.25;
 
 import "./Imports.sol";
 
-contract CrosschainTest is TestHelperOz5 {
+contract IntegrationTest is TestHelperOz5 {
+    using RandomLib for RandomLib.Storage;
+
     using OptionsBuilder for bytes;
 
     uint16 public immutable sourceEid = 1;
@@ -16,30 +18,34 @@ contract CrosschainTest is TestHelperOz5 {
     TargetCore public targetCore;
     SourceCore public sourceCore;
 
-    address public targetCoreOwner = vm.createWallet("target-core-owner").addr;
-    address public sourceCoreOwner = vm.createWallet("source-core-owner").addr;
+    address public coreOwner = vm.createWallet("core-owner").addr;
+    address public coreOperator = vm.createWallet("core-operator").addr;
 
     MockVault public vault;
+    RandomLib.Storage private rnd;
 
-    function setupOApps(bytes memory _oappCreationCode, address[2] memory cores, address gasReceiver_)
-        public
-        returns (address sourceOApp, address targetOApp)
-    {
+    function setupOApps(
+        bytes memory _oappCreationCode,
+        address[2] memory cores,
+        address[2] memory delegators,
+        address gasReceiver
+    ) public returns (address sourceOApp, address targetOApp) {
         address[] memory oapps = new address[](2);
 
         oapps[0] = _deployOApp(
-            _oappCreationCode, abi.encode(address(endpoints[1]), address(this), cores[0], uint32(2), gasReceiver_)
+            _oappCreationCode, abi.encode(address(endpoints[1]), address(this), cores[0], uint32(2), gasReceiver)
         );
         oapps[1] = _deployOApp(
-            _oappCreationCode, abi.encode(address(endpoints[2]), address(this), cores[1], uint32(1), gasReceiver_)
+            _oappCreationCode, abi.encode(address(endpoints[2]), address(this), cores[1], uint32(1), gasReceiver)
         );
-        // config
         wireOApps(oapps);
+
+        Ownable(oapps[0]).transferOwnership(delegators[0]);
+        Ownable(oapps[1]).transferOwnership(delegators[1]);
 
         return (oapps[0], oapps[1]);
     }
 
-    /// @notice Calls setUp from TestHelper and initializes contract instances for testing.
     function setUp() public virtual override {
         super.setUp();
         setUpEndpoints(2, LibraryType.UltraLightNode);
@@ -59,8 +65,14 @@ contract CrosschainTest is TestHelperOz5 {
                 )
             )
         );
-        (address sourceAdapter_, address targetAdapter_) =
-            setupOApps(type(LayerZeroAdapter).creationCode, [address(sourceCore), address(targetCore)], address(this));
+        Delegator sourceDelegator = new Delegator(coreOwner, coreOperator, endpoints[1]);
+        Delegator targetDelegator = new Delegator(coreOwner, coreOperator, endpoints[2]);
+        (address sourceAdapter_, address targetAdapter_) = setupOApps(
+            type(LayerZeroAdapter).creationCode,
+            [address(sourceCore), address(targetCore)],
+            [address(sourceDelegator), address(targetDelegator)],
+            coreOperator
+        );
         sourceAdapter = LayerZeroAdapter(payable(sourceAdapter_));
         targetAdapter = LayerZeroAdapter(payable(targetAdapter_));
 
@@ -74,12 +86,12 @@ contract CrosschainTest is TestHelperOz5 {
 
         vault = new MockVault();
         targetCore.initialize(
-            targetCoreOwner, address(vault), address(targetAdapter), address(claimer), "TargetName", "TargetSymbol"
+            coreOwner, address(vault), address(targetAdapter), address(claimer), "TargetName", "TargetSymbol"
         );
         vault.init("name", "symbol", address(targetCore.asset()));
         sourceCore.initialize(
             ISourceCore.InitParams(
-                sourceCoreOwner,
+                coreOwner,
                 address(0),
                 100 ether,
                 false,
@@ -120,37 +132,41 @@ contract CrosschainTest is TestHelperOz5 {
         }
     }
 
-    function testPushDeposits() public {
-        address user = vm.createWallet("user").addr;
-        vm.startPrank(user);
-        address wsteth = Constants.WSTETH();
-        deal(wsteth, user, 1 ether);
-        deal(user, 2 ether);
-        IERC20(wsteth).approve(address(sourceCore), 1 ether);
-        uint256 batchId = sourceCore.requestDeposit{value: 0.001 ether}(1 ether);
+    // WIP
+    function requestDepositTransition() internal {}
+    function pushDepositBatchSourceTransition() internal {}
+    function cancelDepositTransition() internal {}
+    function claimDepositTransition() internal {}
 
-        uint256 targetFee = targetAdapter.quoteMessage(
-            IAdapter.MessageType.DEPOSIT,
-            targetAdapter.encodeMessage(IAdapter.MessageType.DEPOSIT, abi.encode(type(uint256).max, type(uint256).max)),
-            new bytes(0)
-        );
+    function requestRedeemTransition() internal {}
+    function pushRedeemTransition() internal {}
+    function cancelRedeemTransition() internal {}
+    function claimRedeemTransition() internal {}
 
-        bytes memory options = OptionsBuilder.newOptions().addExecutorLzReceiveOption(1e6, uint128(targetFee));
-        bytes memory fullMessage =
-            sourceAdapter.encodeMessage(IAdapter.MessageType.DEPOSIT, abi.encode(type(uint256).max, type(uint256).max));
+    function verifyPacketSourceTransition() internal {}
+    function verifyPacketTargetTransition() internal {}
 
-        sourceCore.pushDepositBatch{value: 1 ether}(batchId);
-        vm.stopPrank();
+    function rejectRedeemBatchTransition() internal {}
+    function rejectDepositBatchTransition() internal {}
+    function claimTransition() internal {}
+    function retryClaimTransition() internal {}
+    function pushDepositBatchTargetTransition() internal {}
+    function retryPushDepositBatchTransition() internal {}
 
-        verifyPackets(targetEid, addressToBytes32(address(targetAdapter)));
-        verifyPackets(sourceEid, addressToBytes32(address(sourceAdapter)));
+    function()[1] internal transitions = [requestDepositTransition];
 
-        vm.startPrank(user);
-        sourceCore.claimDeposits(new uint256[](1), user);
-        vm.stopPrank();
-    }
+    function validate() internal {}
 
-    function testPushRedeems() public {
+    function testSimulation() external {
+        rnd.seed = 42;
+        uint256 iterations = rnd.randInt(10, 100);
+
+        for (uint256 i = 0; i < iterations; i++) {
+            function() internal transition = transitions[rnd.randInt(0, transitions.length - 1)];
+            transition();
+            validate();
+        }
+
         address user = vm.createWallet("user").addr;
         vm.startPrank(user);
         address wsteth = Constants.WSTETH();
@@ -182,8 +198,8 @@ contract CrosschainTest is TestHelperOz5 {
             targetCore.grantRole(targetCore.OPERATOR_ROLE(), user);
             vm.stopPrank();
 
-            vm.startPrank(targetCoreOwner);
-            deal(targetCoreOwner, 1 ether);
+            vm.startPrank(coreOwner);
+            deal(coreOwner, 1 ether);
             targetCore.pushDepositBatch{value: 1 ether}(batchId);
             vm.stopPrank();
 
