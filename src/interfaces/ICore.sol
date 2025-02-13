@@ -28,8 +28,6 @@ interface ICore is ICoreStorage {
 
     function gasReceiver() external view returns (address);
 
-    function getId(IAdapter.MessageType messageType, uint256 batchId) external view returns (uint256);
-
     event MessageReceived(IAdapter.MessageType messageType, bytes message, uint256 value);
 
     event MessageSent(IAdapter.MessageType messageType, bytes message, uint256 value);

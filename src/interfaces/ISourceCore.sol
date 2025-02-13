@@ -8,7 +8,8 @@ interface ISourceCore is ICore {
         CLOSED,
         OPEN,
         PENDING,
-        COMPLETED
+        COMPLETED,
+        REJECTED
     }
 
     struct Request {
@@ -119,12 +120,6 @@ interface ISourceCore is ICore {
     function cancelRedeemRequest(uint256 batchId) external returns (uint256 shares);
 
     function cancelDepositRequest(uint256 batchId) external returns (uint256 assets);
-
-    function rejectedMessages(uint256 id) external view returns (bool);
-
-    function isDepositRequestRejected(uint256 batchId) external view returns (bool);
-
-    function isRedeemRequestRejected(uint256 batchId) external view returns (bool);
 
     function retryPushRedeemBatch(uint256 batchId) external payable;
 

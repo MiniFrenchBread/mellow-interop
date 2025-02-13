@@ -11,6 +11,8 @@ contract TargetCore is ITargetCore, Core {
 
     /// @inheritdoc ITargetCore
     bytes32 public constant BURNER_ROLE = keccak256("BURNER_ROLE");
+    /// @inheritdoc ITargetCore
+    bytes32 public constant REJECTOR_ROLE = keccak256("REJECTOR_ROLE");
 
     /// @inheritdoc ITargetCore
     address public vault;
@@ -66,11 +68,17 @@ contract TargetCore is ITargetCore, Core {
         (uint256 batchId, uint256 amount) = abi.decode(message, (uint256, uint256));
         if (messageType == IAdapter.MessageType.DEPOSIT) {
             if (!isDepositBatchReceived[batchId]) {
+                if (isDepositBatchRejected[batchId]) {
+                    revert Forbidden();
+                }
                 isDepositBatchReceived[batchId] = true;
                 depositBatchAssets[batchId] = amount;
             }
         } else if (messageType == IAdapter.MessageType.REDEEM) {
             if (!isRedeemBatchReceived[batchId]) {
+                if (isRedeemBatchRejected[batchId]) {
+                    revert Forbidden();
+                }
                 isRedeemBatchReceived[batchId] = true;
                 redeemBatchShares[batchId] = amount;
             }
@@ -80,7 +88,7 @@ contract TargetCore is ITargetCore, Core {
     }
 
     /// @inheritdoc ITargetCore
-    function rejectRedeemBatch(uint256 batchId) external payable atLeastOperator {
+    function rejectRedeemBatch(uint256 batchId) external payable onlyRole(REJECTOR_ROLE) {
         if (!isRedeemBatchRejected[batchId]) {
             if (!isRedeemBatchReceived[batchId] || redeemClaimers[batchId] != address(0)) {
                 revert Forbidden();
@@ -88,7 +96,7 @@ contract TargetCore is ITargetCore, Core {
             delete isRedeemBatchReceived[batchId];
             isRedeemBatchRejected[batchId] = true;
         }
-        _sendMessage(IAdapter.MessageType.REJECT, abi.encode(getId(IAdapter.MessageType.REDEEM, batchId)), msg.value);
+        _sendMessage(IAdapter.MessageType.REJECT, abi.encode(IAdapter.MessageType.REDEEM, batchId), msg.value);
         emit RedeemBatchRejected(batchId, msg.value);
     }
 
@@ -125,7 +133,7 @@ contract TargetCore is ITargetCore, Core {
     }
 
     /// @inheritdoc ITargetCore
-    function rejectDepositBatch(uint256 batchId) external payable atLeastOperator {
+    function rejectDepositBatch(uint256 batchId) external payable onlyRole(REJECTOR_ROLE) {
         if (!isDepositBatchRejected[batchId]) {
             if (!isDepositBatchReceived[batchId] || depositBatchAssets[batchId] == 0) {
                 revert Forbidden();
@@ -134,7 +142,7 @@ contract TargetCore is ITargetCore, Core {
             delete depositBatchAssets[batchId];
             isDepositBatchRejected[batchId] = true;
         }
-        _sendMessage(IAdapter.MessageType.REJECT, abi.encode(getId(IAdapter.MessageType.DEPOSIT, batchId)), msg.value);
+        _sendMessage(IAdapter.MessageType.REJECT, abi.encode(IAdapter.MessageType.DEPOSIT, batchId), msg.value);
         emit DepositBatchRejected(batchId, msg.value);
     }
 

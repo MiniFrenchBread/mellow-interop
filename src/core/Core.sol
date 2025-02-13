@@ -50,11 +50,6 @@ abstract contract Core is ICore, CoreStorage, AccessControlEnumerableUpgradeable
         return adapter().gasReceiver();
     }
 
-    /// @inheritdoc ICore
-    function getId(IAdapter.MessageType messageType, uint256 batchId) public pure returns (uint256) {
-        return (uint256(messageType) << 128) | batchId;
-    }
-
     function _receiveMessage(IAdapter.MessageType messageType, bytes calldata message) internal virtual;
 
     function _sendMessage(IAdapter.MessageType messageType, bytes memory message, uint256 value) internal {

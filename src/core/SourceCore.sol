@@ -39,8 +39,6 @@ contract SourceCore is ISourceCore, Core {
     mapping(uint256 batchId => mapping(uint256 index => bool)) public isClaimCompleted;
     /// @inheritdoc ISourceCore
     mapping(uint256 index => bool) public isSlashingCompleted;
-    /// @inheritdoc ISourceCore
-    mapping(uint256 id => bool) public rejectedMessages;
 
     mapping(uint256 batchId => Request) private _deposits;
     mapping(uint256 batchId => Request) private _redeems;
@@ -142,8 +140,8 @@ contract SourceCore is ISourceCore, Core {
     function cancelDepositRequest(uint256 batchId) external nonReentrant returns (uint256 assets) {
         address sender = _msgSender();
         Request storage deposit_ = _deposits[batchId];
-        ISourceCore.Status status = deposit_.status;
-        if (status == ISourceCore.Status.OPEN || isDepositRequestRejected(batchId)) {
+        Status status = deposit_.status;
+        if (status == Status.OPEN || status == Status.REJECTED) {
             assets = deposit_.accountRequested[sender];
             deposit_.requested -= assets;
             delete deposit_.accountRequested[sender];
@@ -160,9 +158,11 @@ contract SourceCore is ISourceCore, Core {
         if (deposit_.status != Status.OPEN) {
             revert InvalidStatus();
         }
-        if (batchId != 0 && _deposits[batchId - 1].status != Status.COMPLETED && !isDepositRequestRejected(batchId - 1))
-        {
-            revert InvalidStatus();
+        if (batchId != 0) {
+            Status status = _deposits[batchId - 1].status;
+            if (status != Status.COMPLETED && status != Status.REJECTED) {
+                revert InvalidStatus();
+            }
         }
         if (deposit_.requested == 0) {
             revert Forbidden();
@@ -176,12 +176,14 @@ contract SourceCore is ISourceCore, Core {
     /// @inheritdoc ISourceCore
     function retryPushDepositBatch(uint256 batchId) external payable nonReentrant atLeastOperator {
         Request storage deposit_ = _deposits[batchId];
-        if (deposit_.status != Status.PENDING || isDepositRequestRejected(batchId)) {
+        if (deposit_.status != Status.PENDING) {
             revert InvalidStatus();
         }
-        if (batchId != 0 && _deposits[batchId - 1].status != Status.COMPLETED && !isDepositRequestRejected(batchId - 1))
-        {
-            revert InvalidStatus();
+        if (batchId != 0) {
+            Status status = _deposits[batchId - 1].status;
+            if (status != Status.COMPLETED && status != Status.REJECTED) {
+                revert InvalidStatus();
+            }
         }
         if (deposit_.requested == 0) {
             revert Forbidden();
@@ -248,8 +250,8 @@ contract SourceCore is ISourceCore, Core {
     function cancelRedeemRequest(uint256 batchId) external nonReentrant returns (uint256 shares) {
         address sender = _msgSender();
         Request storage redeem_ = _redeems[batchId];
-        ISourceCore.Status status = redeem_.status;
-        if (status == ISourceCore.Status.OPEN || isRedeemRequestRejected(batchId)) {
+        Status status = redeem_.status;
+        if (status == Status.OPEN || status == Status.REJECTED) {
             shares = redeem_.accountRequested[sender];
             redeem_.requested -= shares;
             delete redeem_.accountRequested[sender];
@@ -266,8 +268,11 @@ contract SourceCore is ISourceCore, Core {
         if (redeem_.status != Status.OPEN) {
             revert InvalidStatus();
         }
-        if (batchId != 0 && _redeems[batchId - 1].status != Status.COMPLETED && !isRedeemRequestRejected(batchId - 1)) {
-            revert InvalidStatus();
+        if (batchId != 0) {
+            Status status = _redeems[batchId - 1].status;
+            if (status != Status.COMPLETED && status != Status.REJECTED) {
+                revert InvalidStatus();
+            }
         }
         if (redeem_.requested == 0) {
             revert Forbidden();
@@ -282,11 +287,14 @@ contract SourceCore is ISourceCore, Core {
     /// @inheritdoc ISourceCore
     function retryPushRedeemBatch(uint256 batchId) external payable nonReentrant atLeastOperator {
         Request storage redeem_ = _redeems[batchId];
-        if (redeem_.status != Status.PENDING || isRedeemRequestRejected(batchId)) {
+        if (redeem_.status != Status.PENDING) {
             revert InvalidStatus();
         }
-        if (batchId != 0 && _redeems[batchId - 1].status != Status.COMPLETED && !isRedeemRequestRejected(batchId - 1)) {
-            revert InvalidStatus();
+        if (batchId != 0) {
+            Status status = _redeems[batchId - 1].status;
+            if (status != Status.COMPLETED && status != Status.REJECTED) {
+                revert InvalidStatus();
+            }
         }
         if (redeem_.requested == 0) {
             revert Forbidden();
@@ -324,16 +332,6 @@ contract SourceCore is ISourceCore, Core {
             underlyingAsset.safeTransfer(recipient, assets);
         }
         emit RedeemsClaimed(sender, recipient, assets);
-    }
-
-    /// @inheritdoc ISourceCore
-    function isDepositRequestRejected(uint256 batchId) public view returns (bool) {
-        return rejectedMessages[getId(IAdapter.MessageType.DEPOSIT, batchId)];
-    }
-
-    /// @inheritdoc ISourceCore
-    function isRedeemRequestRejected(uint256 batchId) public view returns (bool) {
-        return rejectedMessages[getId(IAdapter.MessageType.REDEEM, batchId)];
     }
 
     /// @inheritdoc ISourceCore
@@ -468,8 +466,15 @@ contract SourceCore is ISourceCore, Core {
             isSlashingCompleted[index] = true;
             underlyingAsset.safeTransfer(burner, amount);
         } else if (messageType == IAdapter.MessageType.REJECT) {
-            uint256 id = abi.decode(message, (uint256));
-            rejectedMessages[id] = true;
+            (IAdapter.MessageType rejectingMessageType, uint256 batchId) =
+                abi.decode(message, (IAdapter.MessageType, uint256));
+            if (rejectingMessageType == IAdapter.MessageType.DEPOSIT) {
+                _deposits[batchId].status = Status.REJECTED;
+            } else if (rejectingMessageType == IAdapter.MessageType.REDEEM) {
+                _redeems[batchId].status = Status.REJECTED;
+            } else {
+                revert InvalidMessageType();
+            }
         } else {
             revert InvalidMessageType();
         }

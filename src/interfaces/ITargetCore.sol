@@ -8,6 +8,8 @@ import "./ICore.sol";
 interface ITargetCore is ICore {
     function BURNER_ROLE() external view returns (bytes32);
 
+    function REJECTOR_ROLE() external view returns (bytes32);
+
     function vault() external view returns (address);
 
     function redeemClaimerSingleton() external view returns (RedeemClaimer);

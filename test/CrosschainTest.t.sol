@@ -138,7 +138,10 @@ contract CrosschainTest is TestHelperOz5 {
         bytes memory options = OptionsBuilder.newOptions().addExecutorLzReceiveOption(1e6, uint128(targetFee));
         bytes memory fullMessage =
             sourceAdapter.encodeMessage(IAdapter.MessageType.DEPOSIT, abi.encode(type(uint256).max, type(uint256).max));
+        vm.stopPrank();
 
+        vm.startPrank(sourceCoreOwner);
+        deal(sourceCoreOwner, 1 ether);
         sourceCore.pushDepositBatch{value: 1 ether}(batchId);
         vm.stopPrank();
 
@@ -173,6 +176,10 @@ contract CrosschainTest is TestHelperOz5 {
                 IAdapter.MessageType.DEPOSIT, abi.encode(type(uint256).max, type(uint256).max)
             );
 
+            vm.stopPrank();
+
+            vm.startPrank(sourceCoreOwner);
+            deal(sourceCoreOwner, 1 ether);
             sourceCore.pushDepositBatch{value: 1 ether}(batchId);
             vm.stopPrank();
 
@@ -196,7 +203,14 @@ contract CrosschainTest is TestHelperOz5 {
         sourceCore.requestRedeem(1 ether);
         {
             deal(user, 2 ether);
+            vm.stopPrank();
+
+            vm.startPrank(sourceCoreOwner);
+            deal(sourceCoreOwner, 1 ether);
             sourceCore.pushRedeemBatch{value: 1 ether}(0);
+            vm.stopPrank();
+
+            vm.startPrank(user);
 
             verifyPackets(targetEid, addressToBytes32(address(targetAdapter)));
 
