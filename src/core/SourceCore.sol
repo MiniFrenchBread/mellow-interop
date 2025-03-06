@@ -62,7 +62,9 @@ contract SourceCore is ERC4626, AccessControlEnumerable, ReentrancyGuard {
         uint32 targetEndpointId_,
         bytes32 targetCoreAddress_,
         address pushRoleHolder_,
-        address setWithdrawalDelayRoleHoler_
+        address setWithdrawalDelayRoleHoler_,
+        address setValueRoleHoler_,
+        address setMaxAgeRoleHoler_
     ) external onlyRole(DEFAULT_ADMIN_ROLE) {
         if (targetCoreAddress != bytes32(0)) {
             revert("SourceCore: target parameters already set");
@@ -79,6 +81,14 @@ contract SourceCore is ERC4626, AccessControlEnumerable, ReentrancyGuard {
 
         if (setWithdrawalDelayRoleHoler_ != address(0)) {
             _grantRole(withdrawalQueue.SET_WITHDRAWAL_DELAY_ROLE(), setWithdrawalDelayRoleHoler_);
+        }
+
+        if (setValueRoleHoler_ != address(0)) {
+            _grantRole(oracle.SET_VALUE_ROLE(), setValueRoleHoler_);
+        }
+
+        if (setMaxAgeRoleHoler_ != address(0)) {
+            _grantRole(oracle.SET_MAX_AGE_ROLE(), setMaxAgeRoleHoler_);
         }
     }
 
