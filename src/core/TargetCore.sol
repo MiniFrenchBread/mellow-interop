@@ -2,195 +2,112 @@
 
 pragma solidity 0.8.25;
 
-import "../interfaces/ITargetCore.sol";
-import "../utils/RedeemClaimer.sol";
-import "./Core.sol";
+import {MellowOFT} from "../oft/MellowOFT.sol";
+import {MessagingFee, SendParam} from "@layerzerolabs/oft-evm/contracts/interfaces/IOFT.sol";
+import {AccessControlEnumerable} from "@openzeppelin/contracts/access/extensions/AccessControlEnumerable.sol";
+import {IERC4626} from "@openzeppelin/contracts/interfaces/IERC4626.sol";
+import {IERC20, SafeERC20} from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
+import {Address} from "@openzeppelin/contracts/utils/Address.sol";
 
-contract TargetCore is ITargetCore, Core {
+contract TargetCore is AccessControlEnumerable {
     using SafeERC20 for IERC20;
 
-    /// @inheritdoc ITargetCore
-    bytes32 public constant BURNER_ROLE = keccak256("BURNER_ROLE");
-    /// @inheritdoc ITargetCore
-    bytes32 public constant REJECTOR_ROLE = keccak256("REJECTOR_ROLE");
+    bytes32 public constant DEPOSIT_ROLE = keccak256("TARGET_CORE:DEPOSIT_ROLE");
+    bytes32 public constant REDEEM_ROLE = keccak256("TARGET_CORE:REDEEM_ROLE");
+    bytes32 public constant CLAIM_ROLE = keccak256("TARGET_CORE:CLAIM_ROLE");
+    bytes32 public constant PUSH_ROLE = keccak256("TARGET_CORE:PUSH_ROLE");
 
-    /// @inheritdoc ITargetCore
-    address public vault;
-    /// @inheritdoc ITargetCore
-    RedeemClaimer public redeemClaimerSingleton;
+    MellowOFT public immutable oft;
+    IERC4626 public immutable vault;
+    address public immutable claimer;
 
-    /// @inheritdoc ITargetCore
-    mapping(uint256 batchId => uint256) public depositBatchShares;
-    /// @inheritdoc ITargetCore
-    mapping(uint256 batchId => uint256) public depositBatchAssets;
-    /// @inheritdoc ITargetCore
-    mapping(uint256 batchId => bool) public isDepositBatchReceived;
-    /// @inheritdoc ITargetCore
-    mapping(uint256 batchId => bool) public isDepositBatchRejected;
+    uint32 public sourceEndpointId;
+    bytes32 public sourceCoreAddress;
 
-    /// @inheritdoc ITargetCore
-    mapping(uint256 batchId => address) public redeemClaimers;
-    /// @inheritdoc ITargetCore
-    mapping(uint256 batchId => uint256) public redeemBatchShares;
-    /// @inheritdoc ITargetCore
-    mapping(uint256 batchId => bool) public isRedeemBatchReceived;
-    /// @inheritdoc ITargetCore
-    mapping(uint256 batchId => bool) public isRedeemBatchRejected;
-
-    /// @inheritdoc ITargetCore
-    mapping(uint256 batchId => uint256) public claimBatchCount;
-    /// @inheritdoc ITargetCore
-    mapping(uint256 batchId => mapping(uint256 index => uint256 assets)) public claimBatchAssets;
-    /// @inheritdoc ITargetCore
-    mapping(uint256 index => uint256 assets) public slashingRequestsAt;
-    /// @inheritdoc ITargetCore
-    uint256 public slashingRequests = 0;
-
-    constructor(bytes32 name_, uint256 version_) CoreStorage(name_, version_) {
-        _disableInitializers();
-    }
-
-    /// @inheritdoc ITargetCore
-    function initialize(
+    constructor(
         address admin_,
-        address vault_,
-        address adapter_,
-        address claimer_,
+        address delegate_,
         string memory name_,
-        string memory symbol_
-    ) external initializer {
-        __init_Core(admin_, adapter_, name_, symbol_);
-        redeemClaimerSingleton = new RedeemClaimer(claimer_, address(this), address(asset()));
-        vault = vault_;
+        string memory symbol_,
+        address lzEndpoint_,
+        address vault_,
+        address claimer_
+    ) {
+        _grantRole(DEFAULT_ADMIN_ROLE, admin_);
+        oft = new MellowOFT(name_, symbol_, lzEndpoint_, delegate_);
+        vault = IERC4626(vault_);
+        claimer = claimer_;
     }
 
-    function _receiveMessage(IAdapter.MessageType messageType, bytes calldata message) internal virtual override {
-        (uint256 batchId, uint256 amount) = abi.decode(message, (uint256, uint256));
-        if (messageType == IAdapter.MessageType.DEPOSIT) {
-            if (!isDepositBatchReceived[batchId]) {
-                if (isDepositBatchRejected[batchId]) {
-                    revert Forbidden();
-                }
-                isDepositBatchReceived[batchId] = true;
-                depositBatchAssets[batchId] = amount;
-            }
-        } else if (messageType == IAdapter.MessageType.REDEEM) {
-            if (!isRedeemBatchReceived[batchId]) {
-                if (isRedeemBatchRejected[batchId]) {
-                    revert Forbidden();
-                }
-                isRedeemBatchReceived[batchId] = true;
-                redeemBatchShares[batchId] = amount;
-            }
-        } else {
-            revert InvalidMessageType();
+    function initialize(
+        uint32 sourceEndpointId_,
+        bytes32 sourceCoreAddress_,
+        address depositRoleHolder_,
+        address redeemRoleHolder_,
+        address claimRoleHolder_,
+        address pushRoleHoler_
+    ) external onlyRole(DEFAULT_ADMIN_ROLE) {
+        if (sourceCoreAddress != bytes32(0)) {
+            revert("TargetCore: already initialized");
         }
-    }
-
-    /// @inheritdoc ITargetCore
-    function rejectRedeemBatch(uint256 batchId) external payable onlyRole(REJECTOR_ROLE) {
-        if (!isRedeemBatchRejected[batchId]) {
-            if (!isRedeemBatchReceived[batchId] || redeemClaimers[batchId] != address(0)) {
-                revert Forbidden();
-            }
-            delete isRedeemBatchReceived[batchId];
-            isRedeemBatchRejected[batchId] = true;
+        if (sourceCoreAddress_ == bytes32(0)) {
+            revert("TargetCore: zero address");
         }
-        _sendMessage(IAdapter.MessageType.REJECT, abi.encode(IAdapter.MessageType.REDEEM, batchId), msg.value);
-        emit RedeemBatchRejected(batchId, msg.value);
-    }
+        if (vault.asset() != address(oft)) {
+            revert("TargetCore: invalid vault asset");
+        }
+        sourceEndpointId = sourceEndpointId_;
+        sourceCoreAddress = sourceCoreAddress_;
 
-    /// @inheritdoc ITargetCore
-    function claim(uint256 batchId, bytes calldata data) external payable atLeastOperator returns (uint256 assets) {
-        if (!isRedeemBatchReceived[batchId]) {
-            revert Forbidden();
+        if (depositRoleHolder_ != address(0)) {
+            _grantRole(DEPOSIT_ROLE, depositRoleHolder_);
         }
 
-        address claimer = redeemClaimers[batchId];
-        if (claimer == address(0)) {
-            claimer = Clones.cloneDeterministic(address(redeemClaimerSingleton), bytes32(batchId));
-            redeemClaimers[batchId] = address(claimer);
-            IERC4626(vault).redeem(redeemBatchShares[batchId], address(claimer), address(this));
+        if (redeemRoleHolder_ != address(0)) {
+            _grantRole(REDEEM_ROLE, redeemRoleHolder_);
         }
-        assets = RedeemClaimer(claimer).claim(data);
-        if (assets != 0) {
-            asset().burn(address(this), assets);
-            uint256 index = claimBatchCount[batchId]++;
-            claimBatchAssets[batchId][index] = assets;
-            _sendMessage(IAdapter.MessageType.CLAIM, abi.encode(batchId, index, assets), msg.value);
-            emit Claim(batchId, index, assets);
+
+        if (claimRoleHolder_ != address(0)) {
+            _grantRole(CLAIM_ROLE, claimRoleHolder_);
+        }
+
+        if (pushRoleHoler_ != address(0)) {
+            _grantRole(PUSH_ROLE, pushRoleHoler_);
         }
     }
 
-    /// @inheritdoc ITargetCore
-    function retryClaim(uint256 batchId, uint256 index) external payable atLeastOperator {
-        uint256 assets = claimBatchAssets[batchId][index];
-        if (assets == 0) {
-            revert Forbidden();
-        }
-        _sendMessage(IAdapter.MessageType.CLAIM, abi.encode(batchId, index, assets), msg.value);
-        emit ClaimRetried(batchId, index, assets);
+    function deposit(uint256 assets) external onlyRole(DEPOSIT_ROLE) {
+        IERC20(oft).safeIncreaseAllowance(address(vault), assets);
+        vault.deposit(assets, address(this));
+        IERC20(oft).forceApprove(address(vault), 0);
     }
 
-    /// @inheritdoc ITargetCore
-    function rejectDepositBatch(uint256 batchId) external payable onlyRole(REJECTOR_ROLE) {
-        if (!isDepositBatchRejected[batchId]) {
-            if (!isDepositBatchReceived[batchId] || depositBatchAssets[batchId] == 0) {
-                revert Forbidden();
-            }
-            delete isDepositBatchReceived[batchId];
-            delete depositBatchAssets[batchId];
-            isDepositBatchRejected[batchId] = true;
-        }
-        _sendMessage(IAdapter.MessageType.REJECT, abi.encode(IAdapter.MessageType.DEPOSIT, batchId), msg.value);
-        emit DepositBatchRejected(batchId, msg.value);
+    function redeem(uint256 shares) external onlyRole(REDEEM_ROLE) {
+        vault.redeem(shares, address(this), address(this));
     }
 
-    /// @inheritdoc ITargetCore
-    function pushDepositBatch(uint256 batchId) external payable atLeastOperator {
-        if (!isDepositBatchReceived[batchId]) {
-            revert Forbidden();
+    function claim(bytes calldata data) external onlyRole(CLAIM_ROLE) {
+        uint256 balanceBefore = oft.balanceOf(address(this));
+        bytes memory response = Address.functionCall(claimer, data);
+        require(response.length == 32, "TargetCore: invalid response");
+        uint256 expectedAssets = abi.decode(response, (uint256));
+        uint256 balanceAfter = oft.balanceOf(address(this));
+        require(expectedAssets > 0 && balanceAfter == balanceBefore + expectedAssets, "TargetCore: claim failed");
+    }
+
+    function pushToSource(uint256 assets, bytes calldata data) external payable onlyRole(PUSH_ROLE) {
+        assets = oft.removeDust(assets);
+        uint256 liquid = oft.balanceOf(address(this));
+        if (assets < liquid) {
+            revert("TargetCore: insufficient assets");
         }
-        uint256 assets = depositBatchAssets[batchId];
         if (assets == 0) {
             return;
         }
-        delete depositBatchAssets[batchId];
-        OwnedERC20 asset_ = asset();
-        asset_.mint(address(this), assets);
-        IERC20(asset_).safeIncreaseAllowance(vault, assets);
-        uint256 shares = IERC4626(vault).deposit(assets, address(this));
-        depositBatchShares[batchId] = shares;
-
-        _sendMessage(IAdapter.MessageType.DEPOSIT, abi.encode(batchId, shares), msg.value);
-        emit DepositBatchPushed(batchId, shares, msg.value);
-    }
-
-    /// @inheritdoc ITargetCore
-    function retryPushDepositBatch(uint256 batchId) external payable atLeastOperator {
-        uint256 shares = depositBatchShares[batchId];
-        if (shares == 0) {
-            revert Forbidden();
-        }
-        _sendMessage(IAdapter.MessageType.DEPOSIT, abi.encode(batchId, shares), msg.value);
-        emit DepositBatchPushed(batchId, shares, msg.value);
-    }
-
-    /// @inheritdoc ITargetCore
-    function slash(uint256 assets) external payable onlyRole(BURNER_ROLE) {
-        asset().burn(_msgSender(), assets);
-        uint256 index = slashingRequests++;
-        slashingRequestsAt[index] = assets;
-        emit SlashingRequested(index, assets);
-    }
-
-    /// @inheritdoc ITargetCore
-    function pushSlashing(uint256 index) external payable atLeastOperator {
-        uint256 assets = slashingRequestsAt[index];
-        if (assets == 0) {
-            revert Forbidden();
-        }
-        _sendMessage(IAdapter.MessageType.SLASHING, abi.encode(index, assets), msg.value);
-        emit SlashingPushed(index, assets);
+        oft.send{value: msg.value}(
+            SendParam(sourceEndpointId, sourceCoreAddress, assets, assets, new bytes(0), new bytes(0), new bytes(0)),
+            MessagingFee(msg.value, 0),
+            _msgSender()
+        );
     }
 }
