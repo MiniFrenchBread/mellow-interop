@@ -27,7 +27,7 @@ contract WithdrawalQueue {
     uint256 public totalShares;
 
     modifier onlyRole(bytes32 role) {
-        require(sourceCore.hasRole(role, msg.sender), "Forbidden");
+        require(sourceCore.hasRole(role, msg.sender), "WithdrawalQueue: forbidden");
         _;
     }
 
@@ -87,15 +87,15 @@ contract WithdrawalQueue {
             return;
         }
 
-        uint256 assets = sourceCore.previewRedeem(shares_);
-        uint256 liquidAssets = asset.balanceOf(address(sourceCore));
-        if (liquidAssets == 0 || assets > liquidAssets) {
+        uint256 required = sourceCore.previewRedeem(shares_);
+        uint256 liquid = asset.balanceOf(address(sourceCore));
+        if (liquid == 0 || required > liquid) {
             return;
         }
-        sourceCore.pull(shares_, assets);
+        sourceCore.pull(shares_, required);
         totalShares -= shares_;
 
-        withdrawals[epochIterator_] = assets;
+        withdrawals[epochIterator_] = required;
         epochIterator = epochIterator_ + 1;
     }
 
