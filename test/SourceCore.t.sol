@@ -155,6 +155,12 @@ contract UnitTest is Test {
         vm.stopPrank();
 
         vm.startPrank(user);
+        WithdrawalQueue withdrawalQueue = sourceCore.withdrawalQueue();
+        vm.expectRevert("WithdrawalQueue: forbidden");
+        withdrawalQueue.request(user, 1 ether);
+        vm.expectRevert("WithdrawalQueue: forbidden");
+        withdrawalQueue.setWithdrawalDelay(2 weeks);
+
         deal(Constants.WSTETH(), user, 1 ether);
         IERC20(Constants.WSTETH()).approve(address(sourceCore), 1 ether);
         sourceCore.deposit(0.5 ether, user);
@@ -191,13 +197,18 @@ contract UnitTest is Test {
 
         vm.startPrank(user);
 
-        skip(1 weeks);
-        sourceCore.withdrawalQueue().handleEpoch();
+        for (uint256 i = 0; i < 30; i++) {
+            uint256 assets = IERC20(Constants.WSTETH()).balanceOf(address(sourceCore));
+            deal(Constants.WSTETH(), address(sourceCore), 0);
+            withdrawalQueue.claim(0, user);
 
-        skip(1 weeks);
-        sourceCore.withdrawalQueue().handleEpoch();
+            deal(Constants.WSTETH(), address(sourceCore), 1);
+            withdrawalQueue.claim(0, user);
 
-        sourceCore.withdrawalQueue().claim(0, user);
+            deal(Constants.WSTETH(), address(sourceCore), assets);
+            withdrawalQueue.claim(0, user);
+            skip(1 days);
+        }
 
         assertNotEq(address(0), address(sourceCore.oftAdapter()));
         assertNotEq(address(0), address(sourceCore.oracle()));

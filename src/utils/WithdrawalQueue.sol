@@ -28,7 +28,9 @@ contract WithdrawalQueue is ReentrancyGuard {
     uint256 public totalShares;
 
     modifier onlyRole(bytes32 role) {
-        require(sourceCore.hasRole(role, msg.sender), "WithdrawalQueue: forbidden");
+        if (!sourceCore.hasRole(role, msg.sender)) {
+            revert("WithdrawalQueue: forbidden");
+        }
         _;
     }
 
@@ -44,7 +46,9 @@ contract WithdrawalQueue is ReentrancyGuard {
     }
 
     function request(address account, uint256 shares_) external nonReentrant {
-        require(msg.sender == address(sourceCore), "Forbidden");
+        if (msg.sender != address(sourceCore)) {
+            revert("WithdrawalQueue: forbidden");
+        }
         handleEpoch();
         uint256 epoch = currentEpoch();
         totalShares += shares_;
@@ -78,7 +82,7 @@ contract WithdrawalQueue is ReentrancyGuard {
         if (epochIterator_ == currentEpoch_) {
             return;
         }
-        if (initTimestamp + (epochIterator_ + 1) * epochDuration + withdrawalDelay < block.timestamp) {
+        if (initTimestamp + (epochIterator_ + 1) * epochDuration + withdrawalDelay > block.timestamp) {
             return;
         }
 
