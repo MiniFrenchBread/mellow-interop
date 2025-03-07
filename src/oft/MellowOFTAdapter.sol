@@ -9,17 +9,25 @@ import {
 import {Ownable} from "@openzeppelin/contracts/access/Ownable.sol";
 
 contract MellowOFTAdapter is OFTAdapter {
-    address public immutable sourceCore;
+    address public sourceCore;
 
-    constructor(address sourceCore_, address token_, address lzEndpoint_, address owner_)
+    constructor(address token_, address lzEndpoint_, address owner_)
         OFTAdapter(token_, lzEndpoint_, owner_)
         Ownable(owner_)
-    {
+    {}
+
+    function initialize(address sourceCore_) external {
+        if (sourceCore != address(0)) {
+            revert("MellowOFTAdapter: already initialized");
+        }
+        if (sourceCore_ == address(0)) {
+            revert("MellowOFTAdapter: zero address");
+        }
         sourceCore = sourceCore_;
     }
 
     function removeDust(uint256 amountLD_) public view returns (uint256) {
-        return (amountLD_ / decimalConversionRate) * decimalConversionRate;
+        return _removeDust(amountLD_);
     }
 
     function send(SendParam calldata sendParam_, MessagingFee calldata fee_, address refundAddress_)

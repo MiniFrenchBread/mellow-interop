@@ -12,6 +12,6 @@ contract MellowOFT is OFT {
     {}
 
     function removeDust(uint256 amountLD_) public view returns (uint256) {
-        return (amountLD_ / decimalConversionRate) * decimalConversionRate;
+        return _removeDust(amountLD_);
     }
 }

@@ -38,8 +38,6 @@ contract WithdrawalQueue {
         initTimestamp = block.timestamp;
     }
 
-    // external mutable functions
-
     function setWithdrawalDelay(uint256 withdrawalDelay_) external onlyRole(SET_WITHDRAWAL_DELAY_ROLE) {
         withdrawalDelay = withdrawalDelay_;
     }
@@ -100,8 +98,6 @@ contract WithdrawalQueue {
         withdrawals[epochIterator_] = assets;
         epochIterator = epochIterator_ + 1;
     }
-
-    // view functions
 
     function currentEpoch() public view returns (uint256) {
         return (block.timestamp - initTimestamp) / epochDuration;
