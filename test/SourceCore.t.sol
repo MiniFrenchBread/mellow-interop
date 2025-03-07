@@ -38,9 +38,9 @@ contract UnitTest is Test {
                 targetEndpointId: 2,
                 targetCoreAddress: bytes32(uint256(1)),
                 pushRoleHolder: operator,
-                setWithdrawalDelayRoleHoler: admin,
-                setValueRoleHoler: operator,
-                setMaxAgeRoleHoler: admin
+                setWithdrawalDelayRoleHolder: admin,
+                setValueRoleHolder: operator,
+                setMaxAgeRoleHolder: admin
             })
         );
 
@@ -55,9 +55,9 @@ contract UnitTest is Test {
                 targetEndpointId: 2,
                 targetCoreAddress: bytes32(uint256(1)),
                 pushRoleHolder: operator,
-                setWithdrawalDelayRoleHoler: admin,
-                setValueRoleHoler: operator,
-                setMaxAgeRoleHoler: admin
+                setWithdrawalDelayRoleHolder: admin,
+                setValueRoleHolder: operator,
+                setMaxAgeRoleHolder: admin
             })
         );
 
@@ -72,9 +72,9 @@ contract UnitTest is Test {
                 targetEndpointId: 2,
                 targetCoreAddress: bytes32(uint256(1)),
                 pushRoleHolder: operator,
-                setWithdrawalDelayRoleHoler: admin,
-                setValueRoleHoler: operator,
-                setMaxAgeRoleHoler: admin
+                setWithdrawalDelayRoleHolder: admin,
+                setValueRoleHolder: operator,
+                setMaxAgeRoleHolder: admin
             })
         );
 
@@ -89,9 +89,9 @@ contract UnitTest is Test {
                 targetEndpointId: 0,
                 targetCoreAddress: bytes32(uint256(1)),
                 pushRoleHolder: operator,
-                setWithdrawalDelayRoleHoler: admin,
-                setValueRoleHoler: operator,
-                setMaxAgeRoleHoler: admin
+                setWithdrawalDelayRoleHolder: admin,
+                setValueRoleHolder: operator,
+                setMaxAgeRoleHolder: admin
             })
         );
 
@@ -106,9 +106,9 @@ contract UnitTest is Test {
                 targetEndpointId: 2,
                 targetCoreAddress: bytes32(uint256(0)),
                 pushRoleHolder: operator,
-                setWithdrawalDelayRoleHoler: admin,
-                setValueRoleHoler: operator,
-                setMaxAgeRoleHoler: admin
+                setWithdrawalDelayRoleHolder: admin,
+                setValueRoleHolder: operator,
+                setMaxAgeRoleHolder: admin
             })
         );
 
@@ -122,9 +122,9 @@ contract UnitTest is Test {
                 targetEndpointId: 2,
                 targetCoreAddress: bytes32(uint256(1)),
                 pushRoleHolder: operator,
-                setWithdrawalDelayRoleHoler: admin,
-                setValueRoleHoler: operator,
-                setMaxAgeRoleHoler: admin
+                setWithdrawalDelayRoleHolder: admin,
+                setValueRoleHolder: operator,
+                setMaxAgeRoleHolder: admin
             })
         );
 
@@ -139,9 +139,9 @@ contract UnitTest is Test {
                 targetEndpointId: 2,
                 targetCoreAddress: bytes32(uint256(1)),
                 pushRoleHolder: operator,
-                setWithdrawalDelayRoleHoler: admin,
-                setValueRoleHoler: operator,
-                setMaxAgeRoleHoler: admin
+                setWithdrawalDelayRoleHolder: admin,
+                setValueRoleHolder: operator,
+                setMaxAgeRoleHolder: admin
             })
         );
 

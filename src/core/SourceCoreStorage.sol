@@ -21,17 +21,17 @@ abstract contract SourceCoreStorage is
     bytes32 private constant storageSlotRef = 0xeb30039081bb57aacc4645369147b1654132a2ddcd85d2f761c6128c51fded00;
 
     struct InitParams {
+        address admin;
         string name;
         string symbol;
-        address admin;
         address mellowOFTAdapter;
         uint256 epochDuration;
         uint32 targetEndpointId;
         bytes32 targetCoreAddress;
         address pushRoleHolder;
-        address setWithdrawalDelayRoleHoler;
-        address setValueRoleHoler;
-        address setMaxAgeRoleHoler;
+        address setWithdrawalDelayRoleHolder;
+        address setValueRoleHolder;
+        address setMaxAgeRoleHolder;
     }
 
     struct SourceStorage {
@@ -91,16 +91,16 @@ abstract contract SourceCoreStorage is
             _grantRole(PUSH_ROLE, params.pushRoleHolder);
         }
 
-        if (params.setWithdrawalDelayRoleHoler != address(0)) {
-            _grantRole(withdrawalQueue().SET_WITHDRAWAL_DELAY_ROLE(), params.setWithdrawalDelayRoleHoler);
+        if (params.setWithdrawalDelayRoleHolder != address(0)) {
+            _grantRole(withdrawalQueue().SET_WITHDRAWAL_DELAY_ROLE(), params.setWithdrawalDelayRoleHolder);
         }
 
-        if (params.setValueRoleHoler != address(0)) {
-            _grantRole(oracle().SET_VALUE_ROLE(), params.setValueRoleHoler);
+        if (params.setValueRoleHolder != address(0)) {
+            _grantRole(oracle().SET_VALUE_ROLE(), params.setValueRoleHolder);
         }
 
-        if (params.setMaxAgeRoleHoler != address(0)) {
-            _grantRole(oracle().SET_MAX_AGE_ROLE(), params.setMaxAgeRoleHoler);
+        if (params.setMaxAgeRoleHolder != address(0)) {
+            _grantRole(oracle().SET_MAX_AGE_ROLE(), params.setMaxAgeRoleHolder);
         }
     }
 

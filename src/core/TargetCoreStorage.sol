@@ -12,7 +12,6 @@ contract TargetCoreStorage is AccessControlEnumerableUpgradeable {
         address admin;
         string name;
         string symbol;
-        address mellowOFT;
         address vault;
         address claimer;
         uint32 sourceEndpointId;
@@ -20,7 +19,7 @@ contract TargetCoreStorage is AccessControlEnumerableUpgradeable {
         address depositRoleHolder;
         address redeemRoleHolder;
         address claimRoleHolder;
-        address pushRoleHoler;
+        address pushRoleHolder;
     }
 
     struct TargetStorage {
@@ -62,10 +61,7 @@ contract TargetCoreStorage is AccessControlEnumerableUpgradeable {
     function __TargetCoreStorage_init(InitParams calldata params) internal onlyInitializing {
         _grantRole(DEFAULT_ADMIN_ROLE, params.admin);
 
-        if (
-            params.admin == address(0) || params.vault == address(0) || params.claimer == address(0)
-                || params.mellowOFT == address(0)
-        ) {
+        if (params.admin == address(0) || params.vault == address(0) || params.claimer == address(0)) {
             revert("TargetCore: zero address");
         }
         if (params.sourceCoreAddress == bytes32(0)) {
@@ -77,8 +73,8 @@ contract TargetCoreStorage is AccessControlEnumerableUpgradeable {
         }
 
         TargetStorage storage $ = _targetStorage();
-        $.oft = MellowOFT(params.mellowOFT);
         $.vault = IERC4626(params.vault);
+        $.oft = MellowOFT($.vault.asset());
         $.claimer = params.claimer;
         $.sourceEndpointId = params.sourceEndpointId;
         $.sourceCoreAddress = params.sourceCoreAddress;
@@ -95,8 +91,8 @@ contract TargetCoreStorage is AccessControlEnumerableUpgradeable {
             _grantRole(CLAIM_ROLE, params.claimRoleHolder);
         }
 
-        if (params.pushRoleHoler != address(0)) {
-            _grantRole(PUSH_ROLE, params.pushRoleHoler);
+        if (params.pushRoleHolder != address(0)) {
+            _grantRole(PUSH_ROLE, params.pushRoleHolder);
         }
     }
 
