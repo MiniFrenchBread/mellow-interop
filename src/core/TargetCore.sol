@@ -36,10 +36,14 @@ contract TargetCore is TargetCoreStorage {
         MellowOFT oft_ = oft();
         uint256 balanceBefore = oft_.balanceOf(address(this));
         bytes memory response = Address.functionCall(claimer(), data);
-        require(response.length == 32, "TargetCore: invalid response");
+        if (response.length != 32) {
+            revert("TargetCore: invalid response");
+        }
         uint256 expectedAssets = abi.decode(response, (uint256));
         uint256 balanceAfter = oft_.balanceOf(address(this));
-        require(expectedAssets > 0 && balanceAfter == balanceBefore + expectedAssets, "TargetCore: claim failed");
+        if (expectedAssets == 0 || balanceAfter != balanceBefore + expectedAssets) {
+            revert("TargetCore: claim failed");
+        }
     }
 
     function pushToSource(uint256 assets) external payable onlyRole(PUSH_ROLE) {

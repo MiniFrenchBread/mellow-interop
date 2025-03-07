@@ -5,9 +5,10 @@ pragma solidity 0.8.25;
 import "../core/SourceCore.sol";
 
 import {IERC20, SafeERC20} from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
+import {ReentrancyGuard} from "@openzeppelin/contracts/utils/ReentrancyGuard.sol";
 import {Math} from "@openzeppelin/contracts/utils/math/Math.sol";
 
-contract WithdrawalQueue {
+contract WithdrawalQueue is ReentrancyGuard {
     using SafeERC20 for IERC20;
 
     bytes32 public constant SET_WITHDRAWAL_DELAY_ROLE = keccak256("WITHDRAWAL_QUEUE:SET_WITHDRAWAL_DELAY_ROLE");
@@ -42,7 +43,7 @@ contract WithdrawalQueue {
         withdrawalDelay = withdrawalDelay_;
     }
 
-    function request(address account, uint256 shares_) external {
+    function request(address account, uint256 shares_) external nonReentrant {
         require(msg.sender == address(sourceCore), "Forbidden");
         handleEpoch();
         uint256 epoch = currentEpoch();
@@ -51,7 +52,7 @@ contract WithdrawalQueue {
         sharesOf[epoch][account] += shares_;
     }
 
-    function claim(uint256 epoch, address receiver) external returns (uint256 assets) {
+    function claim(uint256 epoch, address receiver) external nonReentrant returns (uint256 assets) {
         handleEpoch();
         if (epoch >= epochIterator) {
             return 0;
@@ -77,7 +78,7 @@ contract WithdrawalQueue {
         if (epochIterator_ == currentEpoch_) {
             return;
         }
-        if (initTimestamp + (epochIterator_ + 1) * epochDuration + withdrawalDelay < block.timestamp) {
+        if (initTimestamp + (epochIterator_ + 2) * epochDuration + withdrawalDelay < block.timestamp) {
             return;
         }
 

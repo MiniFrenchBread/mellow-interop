@@ -9,4 +9,6 @@ contract MockVault is ERC4626Upgradeable {
         __ERC20_init(name_, symbol_);
         __ERC4626_init(IERC20(asset_));
     }
+
+    function testMockVault() private pure {}
 }

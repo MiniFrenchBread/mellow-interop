@@ -51,4 +51,6 @@ library RandomLib {
             result = result_x96.mulDiv(Q96, b_x96) / Q96;
         }
     }
+
+    function testRandomLib() private pure {}
 }

@@ -12,4 +12,16 @@ library Constants {
         }
         revert("Unsupported chain");
     }
+
+    function LZ_ENDPOINT() external view returns (address) {
+        uint256 id = block.chainid;
+        if (id == 1) {
+            return 0x1a44076050125825900e736c501f859c50fE728c;
+        } else if (id == 17000) {
+            return 0x6EDCE65403992e310A62460808c4b910D972f10f;
+        }
+        revert("Unsupported chain");
+    }
+
+    function testConstants() private pure {}
 }

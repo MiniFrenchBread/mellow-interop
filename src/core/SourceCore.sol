@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: BUSL-1.1
 pragma solidity 0.8.25;
 
+import {MellowOFTAdapter} from "../oft/MellowOFTAdapter.sol";
 import {SourceCoreStorage} from "./SourceCoreStorage.sol";
 import {MessagingFee, SendParam} from "@layerzerolabs/oft-evm/contracts/interfaces/IOFT.sol";
 import {IERC20, SafeERC20} from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
@@ -37,32 +38,44 @@ contract SourceCore is SourceCoreStorage {
     }
 
     function requestWithdrawal(uint256 shares) external nonReentrant handleEpoch {
-        require(shares > 0, "SourceCore: zero shares");
+        if (shares == 0) {
+            revert("SourceCore: zero shares");
+        }
         address caller = _msgSender();
         _transfer(caller, address(withdrawalQueue()), shares);
         withdrawalQueue().request(caller, shares);
     }
 
     function pushToTarget() public payable nonReentrant handleEpoch onlyRole(PUSH_ROLE) returns (uint256 assets) {
-        uint256 liquid = IERC20(asset()).balanceOf(address(this));
-        uint256 pending = Math.mulDiv(totalAssets(), withdrawalQueue().totalShares(), totalSupply());
-        if (pending >= liquid) {
-            return 0;
+        IERC20 asset_ = IERC20(asset());
+        uint256 liquid = asset_.balanceOf(address(this));
+        uint256 pendingShares = withdrawalQueue().totalShares();
+        if (pendingShares != 0) {
+            uint256 pending = Math.mulDiv(totalAssets(), pendingShares, totalSupply());
+            if (pending >= liquid) {
+                return 0;
+            }
+            liquid -= pending;
         }
-        assets = oftAdapter().removeDust(liquid - pending);
+        MellowOFTAdapter adapter_ = oftAdapter();
+        assets = adapter_.removeDust(liquid);
         if (assets == 0) {
             return 0;
         }
-        oftAdapter().send{value: msg.value}(
+        asset_.safeIncreaseAllowance(address(adapter_), assets);
+        adapter_.send{value: msg.value}(
             SendParam(targetEndpointId(), targetCoreAddress(), assets, assets, new bytes(0), new bytes(0), new bytes(0)),
             MessagingFee(msg.value, 0),
             _msgSender()
         );
+        asset_.forceApprove(address(adapter_), 0);
     }
 
     function pull(uint256 shares, uint256 assets) external {
         address caller = _msgSender();
-        require(caller == address(withdrawalQueue()), "SourceCore: only withdrawalQueue can pull");
+        if (caller != address(withdrawalQueue())) {
+            revert("SourceCore: only withdrawalQueue can pull");
+        }
         _burn(caller, shares);
         IERC20(asset()).safeTransfer(caller, assets);
     }

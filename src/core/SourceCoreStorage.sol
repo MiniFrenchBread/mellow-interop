@@ -21,7 +21,6 @@ abstract contract SourceCoreStorage is
     bytes32 private constant storageSlotRef = 0xeb30039081bb57aacc4645369147b1654132a2ddcd85d2f761c6128c51fded00;
 
     struct InitParams {
-        address asset;
         string name;
         string symbol;
         address admin;
@@ -64,7 +63,7 @@ abstract contract SourceCoreStorage is
     }
 
     function __SourceCoreStorage_init(InitParams calldata params) internal onlyInitializing {
-        if (params.asset == address(0) || params.admin == address(0) || params.mellowOFTAdapter == address(0)) {
+        if (params.admin == address(0) || params.mellowOFTAdapter == address(0)) {
             revert("SourceCoreStorage: zero address");
         }
 
@@ -72,14 +71,15 @@ abstract contract SourceCoreStorage is
             revert("SourceCoreStorage: zero value");
         }
 
+        address asset = MellowOFTAdapter(params.mellowOFTAdapter).token();
         __ERC20_init(params.name, params.symbol);
-        __ERC4626_init(IERC20(params.asset));
+        __ERC4626_init(IERC20(asset));
 
         _grantRole(DEFAULT_ADMIN_ROLE, params.admin);
 
         SourceStorage storage $ = _sourceStorage();
 
-        $.withdrawalQueue = new WithdrawalQueue(params.epochDuration, params.asset);
+        $.withdrawalQueue = new WithdrawalQueue(params.epochDuration, asset);
         $.oftAdapter = MellowOFTAdapter(params.mellowOFTAdapter);
         $.oftAdapter.initialize(address(this));
         $.oracle = new Oracle(address(this));
@@ -105,9 +105,8 @@ abstract contract SourceCoreStorage is
     }
 
     function _sourceStorage() private pure returns (SourceStorage storage $) {
-        bytes32 slot = storageSlotRef;
         assembly {
-            $.slot := slot
+            $.slot := storageSlotRef
         }
     }
 }

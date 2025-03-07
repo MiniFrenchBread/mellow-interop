@@ -101,9 +101,8 @@ contract TargetCoreStorage is AccessControlEnumerableUpgradeable {
     }
 
     function _targetStorage() private pure returns (TargetStorage storage $) {
-        bytes32 slot = storageSlotRef;
         assembly {
-            $.slot := slot
+            $.slot := storageSlotRef
         }
     }
 }
