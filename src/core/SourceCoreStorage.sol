@@ -10,11 +10,7 @@ import {ERC4626Upgradeable} from "@openzeppelin/contracts-upgradeable/token/ERC2
 import {ReentrancyGuardUpgradeable} from "@openzeppelin/contracts-upgradeable/utils/ReentrancyGuardUpgradeable.sol";
 import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 
-abstract contract SourceCoreStorage is
-    ERC4626Upgradeable,
-    AccessControlEnumerableUpgradeable,
-    ReentrancyGuardUpgradeable
-{
+contract SourceCoreStorage is ERC4626Upgradeable, AccessControlEnumerableUpgradeable, ReentrancyGuardUpgradeable {
     bytes32 public constant PUSH_ROLE = keccak256("SOURCE_CORE:PUSH_ROLE");
 
     /// @dev keccak256(abi.encode(uint256(keccak256(abi.encodePacked("mellow-interop.storage.SourceCore"))) - 1)) & ~bytes32(uint256(0xff));

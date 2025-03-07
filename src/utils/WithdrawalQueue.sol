@@ -78,7 +78,7 @@ contract WithdrawalQueue is ReentrancyGuard {
         if (epochIterator_ == currentEpoch_) {
             return;
         }
-        if (initTimestamp + (epochIterator_ + 2) * epochDuration + withdrawalDelay < block.timestamp) {
+        if (initTimestamp + (epochIterator_ + 1) * epochDuration + withdrawalDelay < block.timestamp) {
             return;
         }
 
