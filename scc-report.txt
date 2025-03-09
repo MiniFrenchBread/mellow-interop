@@ -1,20 +1,20 @@
 ─────────────────────────────────────────────────────────────────────────────────────────────────────────────
 Language                              Files     Lines   Blanks  Comments     Code Complexity Complexity/Lines
 ─────────────────────────────────────────────────────────────────────────────────────────────────────────────
-Solidity                                  9       662      124        18      520         89           133.90
+Solidity                                  9       644      107        73      464         89           153.48
 ─────────────────────────────────────────────────────────────────────────────────────────────────────────────
-src/core/SourceCore.sol                            98       13         1       84         10            11.90
-src/core/SourceCoreStorage.sol                     96       22         8       66         19            28.79
-src/core/TargetCore.sol                            79       13         1       65         10            15.38
-src/core/TargetCoreStorage.sol                    108       22         2       84         19            22.62
-src/oft/MellowOFT.sol                              17        3         2       12          0             0.00
-src/oft/MellowOFTAdapter.sol                       44        7         1       36          6            16.67
-src/utils/Delegator.sol                            48        9         1       38          6            15.79
-src/utils/Oracle.sol                               50       12         1       37          2             5.41
-src/utils/WithdrawalQueue.sol                     122       23         1       98         17            17.35
+src/core/SourceCore.sol                           106       13         9       84         10            11.90
+src/core/SourceCoreStorage.sol                     94       21         8       65         19            29.23
+src/core/TargetCore.sol                            70        9         6       55         10            18.18
+src/core/TargetCoreStorage.sol                     90       19        11       60         19            31.67
+src/oft/MellowOFT.sol                              16        3         2       11          0             0.00
+src/oft/MellowOFTAdapter.sol                       44        7         5       32          6            18.75
+src/utils/Delegator.sol                            44        8         5       31          6            19.35
+src/utils/Oracle.sol                               54        9        10       35          2             5.71
+src/utils/WithdrawalQueue.sol                     126       18        17       91         17            18.68
 ─────────────────────────────────────────────────────────────────────────────────────────────────────────────
-Total                                     9       662      124        18      520         89           133.90
+Total                                     9       644      107        73      464         89           153.48
 ─────────────────────────────────────────────────────────────────────────────────────────────────────────────
-Processed 22489 bytes, 0.022 megabytes (SI)
+Processed 21540 bytes, 0.022 megabytes (SI)
 ─────────────────────────────────────────────────────────────────────────────────────────────────────────────
 
