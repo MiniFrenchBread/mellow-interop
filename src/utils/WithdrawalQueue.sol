@@ -43,6 +43,7 @@ contract WithdrawalQueue is ReentrancyGuard {
 
     function setWithdrawalDelay(uint256 withdrawalDelay_) external onlyRole(SET_WITHDRAWAL_DELAY_ROLE) {
         withdrawalDelay = withdrawalDelay_;
+        emit WithdrawalDelaySet(withdrawalDelay_);
     }
 
     function request(address account, uint256 shares_) external nonReentrant {
@@ -54,6 +55,7 @@ contract WithdrawalQueue is ReentrancyGuard {
         totalShares += shares_;
         shares[epoch] += shares_;
         sharesOf[epoch][account] += shares_;
+        emit Request(epoch, account, shares_);
     }
 
     function claim(uint256 epoch, address receiver) external nonReentrant returns (uint256 assets) {
@@ -74,6 +76,7 @@ contract WithdrawalQueue is ReentrancyGuard {
         withdrawals[epoch] -= assets;
         shares[epoch] -= shares_;
         asset.safeTransfer(receiver, assets);
+        emit Claim(epoch, account, assets);
     }
 
     function handleEpoch() public {
@@ -102,9 +105,18 @@ contract WithdrawalQueue is ReentrancyGuard {
 
         withdrawals[epochIterator_] = required;
         epochIterator = epochIterator_ + 1;
+        emit HandleEpoch(epochIterator_, shares_, required);
     }
 
     function currentEpoch() public view returns (uint256) {
         return (block.timestamp - initTimestamp) / epochDuration;
     }
+
+    event Request(uint256 indexed epoch, address indexed account, uint256 indexed shares);
+
+    event Claim(uint256 indexed epoch, address indexed account, uint256 indexed assets);
+
+    event HandleEpoch(uint256 indexed epoch, uint256 indexed shares, uint256 indexed assets);
+
+    event WithdrawalDelaySet(uint256 indexed withdrawalDelay_);
 }

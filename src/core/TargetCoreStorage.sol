@@ -94,6 +94,8 @@ contract TargetCoreStorage is AccessControlEnumerableUpgradeable {
         if (params.pushRoleHolder != address(0)) {
             _grantRole(PUSH_ROLE, params.pushRoleHolder);
         }
+
+        emit TargetCoreStorageInit(params);
     }
 
     function _targetStorage() private pure returns (TargetStorage storage $) {
@@ -101,4 +103,6 @@ contract TargetCoreStorage is AccessControlEnumerableUpgradeable {
             $.slot := storageSlotRef
         }
     }
+
+    event TargetCoreStorageInit(InitParams params);
 }

@@ -98,6 +98,8 @@ contract SourceCoreStorage is ERC4626Upgradeable, AccessControlEnumerableUpgrade
         if (params.setMaxAgeRoleHolder != address(0)) {
             _grantRole(oracle().SET_MAX_AGE_ROLE(), params.setMaxAgeRoleHolder);
         }
+
+        emit SourceCoreStorageInitialized(params, $.withdrawalQueue, $.oracle);
     }
 
     function _sourceStorage() private pure returns (SourceStorage storage $) {
@@ -105,4 +107,6 @@ contract SourceCoreStorage is ERC4626Upgradeable, AccessControlEnumerableUpgrade
             $.slot := storageSlotRef
         }
     }
+
+    event SourceCoreStorageInitialized(InitParams params, WithdrawalQueue withdrawalQueue, Oracle oracle);
 }

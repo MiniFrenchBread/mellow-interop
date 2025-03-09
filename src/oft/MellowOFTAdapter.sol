@@ -37,7 +37,7 @@ contract MellowOFTAdapter is OFTAdapter {
         returns (MessagingReceipt memory, OFTReceipt memory)
     {
         if (_msgSender() != sourceCore) {
-            revert("Forbidden");
+            revert("MellowOFTAdapter: forbidden");
         }
         return _send(sendParam_, fee_, refundAddress_);
     }

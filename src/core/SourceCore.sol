@@ -3,7 +3,9 @@ pragma solidity 0.8.25;
 
 import {MellowOFTAdapter} from "../oft/MellowOFTAdapter.sol";
 import {SourceCoreStorage} from "./SourceCoreStorage.sol";
-import {MessagingFee, SendParam} from "@layerzerolabs/oft-evm/contracts/interfaces/IOFT.sol";
+import {
+    MessagingFee, MessagingReceipt, OFTReceipt, SendParam
+} from "@layerzerolabs/oft-evm/contracts/interfaces/IOFT.sol";
 import {IERC20, SafeERC20} from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 import {Math} from "@openzeppelin/contracts/utils/math/Math.sol";
 
@@ -44,6 +46,7 @@ contract SourceCore is SourceCoreStorage {
         address caller = _msgSender();
         _transfer(caller, address(withdrawalQueue()), shares);
         withdrawalQueue().request(caller, shares);
+        emit WithdrawalRequested(caller, shares);
     }
 
     function pushToTarget() public payable nonReentrant handleEpoch onlyRole(PUSH_ROLE) returns (uint256 assets) {
@@ -63,12 +66,13 @@ contract SourceCore is SourceCoreStorage {
             return 0;
         }
         asset_.safeIncreaseAllowance(address(adapter_), assets);
-        adapter_.send{value: msg.value}(
+        (MessagingReceipt memory msgReceipt, OFTReceipt memory oftReceipt) = adapter_.send{value: msg.value}(
             SendParam(targetEndpointId(), targetCoreAddress(), assets, assets, new bytes(0), new bytes(0), new bytes(0)),
             MessagingFee(msg.value, 0),
             _msgSender()
         );
         asset_.forceApprove(address(adapter_), 0);
+        emit PushToTarget(assets, msgReceipt, oftReceipt);
     }
 
     function pull(uint256 shares, uint256 assets) external {
@@ -78,9 +82,16 @@ contract SourceCore is SourceCoreStorage {
         }
         _burn(caller, shares);
         IERC20(asset()).safeTransfer(caller, assets);
+        emit Pull(caller, shares, assets);
     }
 
     function _withdraw(address, address, address, uint256, uint256) internal pure override {
         revert("SourceCore: not implemented");
     }
+
+    event WithdrawalRequested(address indexed caller, uint256 indexed shares);
+
+    event PushToTarget(uint256 indexed assets, MessagingReceipt msgReceipt, OFTReceipt oftReceipt);
+
+    event Pull(address indexed caller, uint256 indexed shares, uint256 indexed assets);
 }

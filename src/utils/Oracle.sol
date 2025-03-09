@@ -5,8 +5,6 @@ pragma solidity 0.8.25;
 import "@openzeppelin/contracts/access/IAccessControl.sol";
 
 contract Oracle {
-    error Forbidden();
-
     bytes32 public constant SET_VALUE_ROLE = keccak256("ORACLE:SET_VALUE_ROLE");
     bytes32 public constant SET_MAX_AGE_ROLE = keccak256("ORACLE:SET_MAX_AGE_ROLE");
 
@@ -22,26 +20,31 @@ contract Oracle {
 
     modifier onlyRole(bytes32 role) {
         if (!IAccessControl(core).hasRole(role, msg.sender)) {
-            revert Forbidden();
+            revert("Oracle: forbidden");
         }
         _;
     }
 
     function getValue() public view returns (uint256) {
         if (lastUpdated + maxAge < block.timestamp) {
-            revert Forbidden();
+            revert("Oracle: stale value");
         }
         return value;
     }
 
     function setMaxAge(uint256 maxAge_) external onlyRole(SET_MAX_AGE_ROLE) {
         maxAge = maxAge_;
-        // event
+        emit MaxAgeSet(maxAge_);
     }
 
     function setValue(uint256 value_) external onlyRole(SET_VALUE_ROLE) {
         value = value_;
-        lastUpdated = block.timestamp;
-        // event
+        uint256 timestamp = block.timestamp;
+        lastUpdated = timestamp;
+        emit ValueSet(value_, timestamp);
     }
+
+    event MaxAgeSet(uint256 indexed maxAge);
+
+    event ValueSet(uint256 indexed value, uint256 indexed timestamp);
 }

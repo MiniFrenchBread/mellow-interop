@@ -4,7 +4,9 @@ pragma solidity 0.8.25;
 
 import {MellowOFT} from "../oft/MellowOFT.sol";
 import {TargetCoreStorage} from "./TargetCoreStorage.sol";
-import {MessagingFee, SendParam} from "@layerzerolabs/oft-evm/contracts/interfaces/IOFT.sol";
+import {
+    MessagingFee, MessagingReceipt, OFTReceipt, SendParam
+} from "@layerzerolabs/oft-evm/contracts/interfaces/IOFT.sol";
 import {IERC4626} from "@openzeppelin/contracts/interfaces/IERC4626.sol";
 import {IERC20, SafeERC20} from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 import {Address} from "@openzeppelin/contracts/utils/Address.sol";
@@ -26,10 +28,12 @@ contract TargetCore is TargetCoreStorage {
         IERC20(oft_).safeIncreaseAllowance(address(vault_), assets);
         vault_.deposit(assets, address(this));
         IERC20(oft_).forceApprove(address(vault_), 0);
+        emit Deposit(assets);
     }
 
     function redeem(uint256 shares) external onlyRole(REDEEM_ROLE) {
         vault().redeem(shares, address(this), address(this));
+        emit Redeem(shares);
     }
 
     function claim(bytes calldata data) external onlyRole(CLAIM_ROLE) {
@@ -44,6 +48,7 @@ contract TargetCore is TargetCoreStorage {
         if (expectedAssets == 0 || balanceAfter != balanceBefore + expectedAssets) {
             revert("TargetCore: claim failed");
         }
+        emit Claim(expectedAssets, data);
     }
 
     function pushToSource(uint256 assets) external payable onlyRole(PUSH_ROLE) {
@@ -56,10 +61,19 @@ contract TargetCore is TargetCoreStorage {
         if (assets == 0) {
             return;
         }
-        oft().send{value: msg.value}(
+        (MessagingReceipt memory msgReceipt, OFTReceipt memory oftReceipt) = oft().send{value: msg.value}(
             SendParam(sourceEndpointId(), sourceCoreAddress(), assets, assets, new bytes(0), new bytes(0), new bytes(0)),
             MessagingFee(msg.value, 0),
             _msgSender()
         );
+        emit PushToSource(assets, msgReceipt, oftReceipt);
     }
+
+    event Deposit(uint256 assets);
+
+    event Redeem(uint256 shares);
+
+    event Claim(uint256 assets, bytes data);
+
+    event PushToSource(uint256 assets, MessagingReceipt msgReceipt, OFTReceipt oftReceipt);
 }
