@@ -24,6 +24,7 @@ interface ISourceCoreStorage is IERC4626, IAccessControlEnumerable {
         uint256 epochDuration;
         uint32 targetEndpointId;
         bytes32 targetCoreAddress;
+        uint256 limit;
         address pushRoleHolder;
         address setWithdrawalDelayRoleHolder;
         address setValueRoleHolder;
@@ -36,11 +37,14 @@ interface ISourceCoreStorage is IERC4626, IAccessControlEnumerable {
         IOracle oracle;
         uint32 targetEndpointId;
         bytes32 targetCoreAddress;
+        uint256 limit;
     }
 
     function D18() external view returns (uint256);
 
     function PUSH_ROLE() external view returns (bytes32);
+
+    function SET_LIMIT_ROLE() external view returns (bytes32);
 
     function withdrawalQueue() external view returns (IWithdrawalQueue);
 
@@ -51,6 +55,10 @@ interface ISourceCoreStorage is IERC4626, IAccessControlEnumerable {
     function targetEndpointId() external view returns (uint32);
 
     function targetCoreAddress() external view returns (bytes32);
+
+    function limit() external view returns (uint256);
+
+    function setLimit(uint256) external;
 
     event SourceCoreStorageInitialized(InitParams params, IWithdrawalQueue withdrawalQueue, IOracle oracle);
 }

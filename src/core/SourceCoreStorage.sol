@@ -13,9 +13,10 @@ contract SourceCoreStorage is
 {
     /// @inheritdoc ISourceCoreStorage
     uint256 public constant D18 = 1 ether;
-
     /// @inheritdoc ISourceCoreStorage
     bytes32 public constant PUSH_ROLE = keccak256("SOURCE_CORE:PUSH_ROLE");
+    /// @inheritdoc ISourceCoreStorage
+    bytes32 public constant SET_LIMIT_ROLE = keccak256("SOURCE_CORE:SET_LIMIT_ROLE");
 
     /// @dev keccak256(abi.encode(uint256(keccak256(abi.encodePacked("mellow-interop.storage.SourceCore"))) - 1)) & ~bytes32(uint256(0xff));
     bytes32 private constant storageSlotRef = 0xeb30039081bb57aacc4645369147b1654132a2ddcd85d2f761c6128c51fded00;
@@ -45,6 +46,16 @@ contract SourceCoreStorage is
         return _sourceStorage().targetCoreAddress;
     }
 
+    /// @inheritdoc ISourceCoreStorage
+    function limit() public view override returns (uint256) {
+        return _sourceStorage().limit;
+    }
+
+    /// @inheritdoc ISourceCoreStorage
+    function setLimit(uint256 limit_) external override onlyRole(SET_LIMIT_ROLE) {
+        _sourceStorage().limit = limit_;
+    }
+
     function __SourceCoreStorage_init(InitParams calldata params) internal onlyInitializing {
         if (params.admin == address(0) || params.mellowOFTAdapter == address(0)) {
             revert("SourceCoreStorage: zero address");
@@ -66,9 +77,9 @@ contract SourceCoreStorage is
         $.oftAdapter = IMellowOFTAdapter(params.mellowOFTAdapter);
         $.oftAdapter.initialize(address(this));
         $.oracle = IOracle(address(new Oracle(address(this))));
-
         $.targetEndpointId = params.targetEndpointId;
         $.targetCoreAddress = params.targetCoreAddress;
+        $.limit = params.limit;
 
         if (params.pushRoleHolder != address(0)) {
             _grantRole(PUSH_ROLE, params.pushRoleHolder);

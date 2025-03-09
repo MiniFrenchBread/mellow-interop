@@ -27,6 +27,25 @@ contract SourceCore is ISourceCore, SourceCoreStorage {
     }
 
     /// @inheritdoc IERC4626
+    function maxMint(address account) public view virtual override(ERC4626Upgradeable, IERC4626) returns (uint256) {
+        uint256 assets = maxDeposit(account);
+        if (assets == type(uint256).max) {
+            return type(uint256).max;
+        }
+        return convertToShares(assets);
+    }
+
+    /// @inheritdoc IERC4626
+    function maxDeposit(address account) public view virtual override(ERC4626Upgradeable, IERC4626) returns (uint256) {
+        uint256 limit_ = limit();
+        if (limit_ == type(uint256).max) {
+            return type(uint256).max;
+        }
+        uint256 assets_ = totalAssets();
+        return limit_ >= assets_ ? limit_ - assets_ : 0;
+    }
+
+    /// @inheritdoc IERC4626
     function deposit(uint256 assets, address receiver)
         public
         override(IERC4626, ERC4626Upgradeable)
