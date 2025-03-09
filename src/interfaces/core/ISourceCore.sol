@@ -10,8 +10,6 @@ import {IERC20, SafeERC20} from "@openzeppelin/contracts/token/ERC20/utils/SafeE
 import {Math} from "@openzeppelin/contracts/utils/math/Math.sol";
 
 interface ISourceCore is ISourceCoreStorage {
-    function D18() external view returns (uint256);
-
     function initialize(InitParams calldata params) external;
 
     function requestWithdrawal(uint256 shares) external;

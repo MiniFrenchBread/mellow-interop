@@ -12,6 +12,9 @@ contract SourceCoreStorage is
     ReentrancyGuardUpgradeable
 {
     /// @inheritdoc ISourceCoreStorage
+    uint256 public constant D18 = 1 ether;
+
+    /// @inheritdoc ISourceCoreStorage
     bytes32 public constant PUSH_ROLE = keccak256("SOURCE_CORE:PUSH_ROLE");
 
     /// @dev keccak256(abi.encode(uint256(keccak256(abi.encodePacked("mellow-interop.storage.SourceCore"))) - 1)) & ~bytes32(uint256(0xff));

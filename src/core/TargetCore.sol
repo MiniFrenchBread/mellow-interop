@@ -60,7 +60,7 @@ contract TargetCore is ITargetCore, TargetCoreStorage {
         if (assets == 0) {
             return;
         }
-        (MessagingReceipt memory msgReceipt, OFTReceipt memory oftReceipt) = oft().send{value: msg.value}(
+        (MessagingReceipt memory msgReceipt, OFTReceipt memory oftReceipt) = oft_.send{value: msg.value}(
             SendParam(sourceEndpointId(), sourceCoreAddress(), assets, assets, new bytes(0), new bytes(0), new bytes(0)),
             MessagingFee(msg.value, 0),
             _msgSender()

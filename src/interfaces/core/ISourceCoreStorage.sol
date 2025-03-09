@@ -38,6 +38,8 @@ interface ISourceCoreStorage is IERC4626, IAccessControlEnumerable {
         bytes32 targetCoreAddress;
     }
 
+    function D18() external view returns (uint256);
+
     function PUSH_ROLE() external view returns (bytes32);
 
     function withdrawalQueue() external view returns (IWithdrawalQueue);

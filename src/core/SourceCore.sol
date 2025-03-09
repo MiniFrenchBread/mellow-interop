@@ -7,9 +7,6 @@ import "./SourceCoreStorage.sol";
 contract SourceCore is ISourceCore, SourceCoreStorage {
     using SafeERC20 for IERC20;
 
-    /// @inheritdoc ISourceCore
-    uint256 public constant D18 = 1 ether;
-
     constructor() {
         _disableInitializers();
     }
