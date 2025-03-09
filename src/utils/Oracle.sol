@@ -2,16 +2,21 @@
 
 pragma solidity 0.8.25;
 
-import "@openzeppelin/contracts/access/IAccessControl.sol";
+import "../interfaces/utils/IOracle.sol";
 
-contract Oracle {
+contract Oracle is IOracle {
+    /// @inheritdoc IOracle
     bytes32 public constant SET_VALUE_ROLE = keccak256("ORACLE:SET_VALUE_ROLE");
+    /// @inheritdoc IOracle
     bytes32 public constant SET_MAX_AGE_ROLE = keccak256("ORACLE:SET_MAX_AGE_ROLE");
 
+    /// @inheritdoc IOracle
     address public immutable core;
-
+    /// @inheritdoc IOracle
     uint256 public value;
+    /// @inheritdoc IOracle
     uint256 public lastUpdated;
+    /// @inheritdoc IOracle
     uint256 public maxAge;
 
     constructor(address core_) {
@@ -25,6 +30,7 @@ contract Oracle {
         _;
     }
 
+    /// @inheritdoc IOracle
     function getValue() public view returns (uint256) {
         if (lastUpdated + maxAge < block.timestamp) {
             revert("Oracle: stale value");
@@ -32,19 +38,17 @@ contract Oracle {
         return value;
     }
 
+    /// @inheritdoc IOracle
     function setMaxAge(uint256 maxAge_) external onlyRole(SET_MAX_AGE_ROLE) {
         maxAge = maxAge_;
         emit MaxAgeSet(maxAge_);
     }
 
+    /// @inheritdoc IOracle
     function setValue(uint256 value_) external onlyRole(SET_VALUE_ROLE) {
         value = value_;
         uint256 timestamp = block.timestamp;
         lastUpdated = timestamp;
         emit ValueSet(value_, timestamp);
     }
-
-    event MaxAgeSet(uint256 indexed maxAge);
-
-    event ValueSet(uint256 indexed value, uint256 indexed timestamp);
 }

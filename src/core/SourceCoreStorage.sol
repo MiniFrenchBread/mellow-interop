@@ -1,59 +1,43 @@
 // SPDX-License-Identifier: BUSL-1.1
 pragma solidity 0.8.25;
 
-import {MellowOFTAdapter} from "../oft/MellowOFTAdapter.sol";
+import "../interfaces/core/ISourceCoreStorage.sol";
 import {Oracle} from "../utils/Oracle.sol";
 import {WithdrawalQueue} from "../utils/WithdrawalQueue.sol";
-import {AccessControlEnumerableUpgradeable} from
-    "@openzeppelin/contracts-upgradeable/access/extensions/AccessControlEnumerableUpgradeable.sol";
-import {ERC4626Upgradeable} from "@openzeppelin/contracts-upgradeable/token/ERC20/extensions/ERC4626Upgradeable.sol";
-import {ReentrancyGuardUpgradeable} from "@openzeppelin/contracts-upgradeable/utils/ReentrancyGuardUpgradeable.sol";
-import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 
-contract SourceCoreStorage is ERC4626Upgradeable, AccessControlEnumerableUpgradeable, ReentrancyGuardUpgradeable {
+contract SourceCoreStorage is
+    ISourceCoreStorage,
+    ERC4626Upgradeable,
+    AccessControlEnumerableUpgradeable,
+    ReentrancyGuardUpgradeable
+{
+    /// @inheritdoc ISourceCoreStorage
     bytes32 public constant PUSH_ROLE = keccak256("SOURCE_CORE:PUSH_ROLE");
 
     /// @dev keccak256(abi.encode(uint256(keccak256(abi.encodePacked("mellow-interop.storage.SourceCore"))) - 1)) & ~bytes32(uint256(0xff));
     bytes32 private constant storageSlotRef = 0xeb30039081bb57aacc4645369147b1654132a2ddcd85d2f761c6128c51fded00;
 
-    struct InitParams {
-        address admin;
-        string name;
-        string symbol;
-        address mellowOFTAdapter;
-        uint256 epochDuration;
-        uint32 targetEndpointId;
-        bytes32 targetCoreAddress;
-        address pushRoleHolder;
-        address setWithdrawalDelayRoleHolder;
-        address setValueRoleHolder;
-        address setMaxAgeRoleHolder;
-    }
-
-    struct SourceStorage {
-        WithdrawalQueue withdrawalQueue;
-        MellowOFTAdapter oftAdapter;
-        Oracle oracle;
-        uint32 targetEndpointId;
-        bytes32 targetCoreAddress;
-    }
-
-    function withdrawalQueue() public view returns (WithdrawalQueue) {
+    /// @inheritdoc ISourceCoreStorage
+    function withdrawalQueue() public view returns (IWithdrawalQueue) {
         return _sourceStorage().withdrawalQueue;
     }
 
-    function oftAdapter() public view returns (MellowOFTAdapter) {
+    /// @inheritdoc ISourceCoreStorage
+    function oftAdapter() public view returns (IMellowOFTAdapter) {
         return _sourceStorage().oftAdapter;
     }
 
-    function oracle() public view returns (Oracle) {
+    /// @inheritdoc ISourceCoreStorage
+    function oracle() public view returns (IOracle) {
         return _sourceStorage().oracle;
     }
 
+    /// @inheritdoc ISourceCoreStorage
     function targetEndpointId() public view returns (uint32) {
         return _sourceStorage().targetEndpointId;
     }
 
+    /// @inheritdoc ISourceCoreStorage
     function targetCoreAddress() public view returns (bytes32) {
         return _sourceStorage().targetCoreAddress;
     }
@@ -67,7 +51,7 @@ contract SourceCoreStorage is ERC4626Upgradeable, AccessControlEnumerableUpgrade
             revert("SourceCoreStorage: zero value");
         }
 
-        address asset = MellowOFTAdapter(params.mellowOFTAdapter).token();
+        address asset = IMellowOFTAdapter(params.mellowOFTAdapter).token();
         __ERC20_init(params.name, params.symbol);
         __ERC4626_init(IERC20(asset));
 
@@ -75,10 +59,10 @@ contract SourceCoreStorage is ERC4626Upgradeable, AccessControlEnumerableUpgrade
 
         SourceStorage storage $ = _sourceStorage();
 
-        $.withdrawalQueue = new WithdrawalQueue(params.epochDuration, asset);
-        $.oftAdapter = MellowOFTAdapter(params.mellowOFTAdapter);
+        $.withdrawalQueue = IWithdrawalQueue(address(new WithdrawalQueue(params.epochDuration, asset)));
+        $.oftAdapter = IMellowOFTAdapter(params.mellowOFTAdapter);
         $.oftAdapter.initialize(address(this));
-        $.oracle = new Oracle(address(this));
+        $.oracle = IOracle(address(new Oracle(address(this))));
 
         $.targetEndpointId = params.targetEndpointId;
         $.targetCoreAddress = params.targetCoreAddress;
@@ -107,6 +91,4 @@ contract SourceCoreStorage is ERC4626Upgradeable, AccessControlEnumerableUpgrade
             $.slot := storageSlotRef
         }
     }
-
-    event SourceCoreStorageInitialized(InitParams params, WithdrawalQueue withdrawalQueue, Oracle oracle);
 }

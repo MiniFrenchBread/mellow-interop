@@ -2,29 +2,36 @@
 
 pragma solidity 0.8.25;
 
-import "../core/SourceCore.sol";
+import "../interfaces/utils/IWithdrawalQueue.sol";
 
-import {IERC20, SafeERC20} from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
-import {ReentrancyGuard} from "@openzeppelin/contracts/utils/ReentrancyGuard.sol";
-import {Math} from "@openzeppelin/contracts/utils/math/Math.sol";
-
-contract WithdrawalQueue is ReentrancyGuard {
+contract WithdrawalQueue is IWithdrawalQueue, ReentrancyGuard {
     using SafeERC20 for IERC20;
 
+    /// @inheritdoc IWithdrawalQueue
     bytes32 public constant SET_WITHDRAWAL_DELAY_ROLE = keccak256("WITHDRAWAL_QUEUE:SET_WITHDRAWAL_DELAY_ROLE");
 
-    SourceCore public immutable sourceCore;
+    /// @inheritdoc IWithdrawalQueue
+    ISourceCore public immutable sourceCore;
+    /// @inheritdoc IWithdrawalQueue
     IERC20 public immutable asset;
+    /// @inheritdoc IWithdrawalQueue
     uint256 public immutable epochDuration;
+    /// @inheritdoc IWithdrawalQueue
     uint256 public immutable initTimestamp;
 
+    /// @inheritdoc IWithdrawalQueue
     uint256 public epochIterator = 0;
+    /// @inheritdoc IWithdrawalQueue
     uint256 public withdrawalDelay = 1 weeks;
 
+    /// @inheritdoc IWithdrawalQueue
     mapping(uint256 epoch => mapping(address account => uint256 shares)) public sharesOf;
+    /// @inheritdoc IWithdrawalQueue
     mapping(uint256 epoch => uint256) public withdrawals;
+    /// @inheritdoc IWithdrawalQueue
     mapping(uint256 epoch => uint256) public shares;
 
+    /// @inheritdoc IWithdrawalQueue
     uint256 public totalShares;
 
     modifier onlyRole(bytes32 role) {
@@ -35,17 +42,19 @@ contract WithdrawalQueue is ReentrancyGuard {
     }
 
     constructor(uint256 epochDuration_, address asset_) {
-        sourceCore = SourceCore(msg.sender);
+        sourceCore = ISourceCore(msg.sender);
         asset = IERC20(asset_);
         epochDuration = epochDuration_;
         initTimestamp = block.timestamp;
     }
 
+    /// @inheritdoc IWithdrawalQueue
     function setWithdrawalDelay(uint256 withdrawalDelay_) external onlyRole(SET_WITHDRAWAL_DELAY_ROLE) {
         withdrawalDelay = withdrawalDelay_;
         emit WithdrawalDelaySet(withdrawalDelay_);
     }
 
+    /// @inheritdoc IWithdrawalQueue
     function request(address account, uint256 shares_) external nonReentrant {
         if (msg.sender != address(sourceCore)) {
             revert("WithdrawalQueue: forbidden");
@@ -58,6 +67,7 @@ contract WithdrawalQueue is ReentrancyGuard {
         emit Request(epoch, account, shares_);
     }
 
+    /// @inheritdoc IWithdrawalQueue
     function claim(uint256 epoch, address receiver) external nonReentrant returns (uint256 assets) {
         handleEpoch();
         if (epoch >= epochIterator) {
@@ -79,6 +89,7 @@ contract WithdrawalQueue is ReentrancyGuard {
         emit Claim(epoch, account, assets);
     }
 
+    /// @inheritdoc IWithdrawalQueue
     function handleEpoch() public {
         uint256 epochIterator_ = epochIterator;
         uint256 currentEpoch_ = currentEpoch();
@@ -108,15 +119,8 @@ contract WithdrawalQueue is ReentrancyGuard {
         emit HandleEpoch(epochIterator_, shares_, required);
     }
 
+    /// @inheritdoc IWithdrawalQueue
     function currentEpoch() public view returns (uint256) {
         return (block.timestamp - initTimestamp) / epochDuration;
     }
-
-    event Request(uint256 indexed epoch, address indexed account, uint256 indexed shares);
-
-    event Claim(uint256 indexed epoch, address indexed account, uint256 indexed assets);
-
-    event HandleEpoch(uint256 indexed epoch, uint256 indexed shares, uint256 indexed assets);
-
-    event WithdrawalDelaySet(uint256 indexed withdrawalDelay_);
 }

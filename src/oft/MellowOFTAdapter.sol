@@ -2,13 +2,10 @@
 
 pragma solidity 0.8.25;
 
-import {OFTAdapter} from "@layerzerolabs/oft-evm/contracts/OFTAdapter.sol";
-import {
-    MessagingFee, MessagingReceipt, OFTReceipt, SendParam
-} from "@layerzerolabs/oft-evm/contracts/interfaces/IOFT.sol";
-import {Ownable} from "@openzeppelin/contracts/access/Ownable.sol";
+import "../interfaces/oft/IMellowOFTAdapter.sol";
 
-contract MellowOFTAdapter is OFTAdapter {
+contract MellowOFTAdapter is IMellowOFTAdapter, OFTAdapter {
+    /// @inheritdoc IMellowOFTAdapter
     address public sourceCore;
 
     constructor(address token_, address lzEndpoint_, address owner_)
@@ -16,6 +13,7 @@ contract MellowOFTAdapter is OFTAdapter {
         Ownable(owner_)
     {}
 
+    /// @inheritdoc IMellowOFTAdapter
     function initialize(address sourceCore_) external {
         if (sourceCore != address(0)) {
             revert("MellowOFTAdapter: already initialized");
@@ -26,14 +24,16 @@ contract MellowOFTAdapter is OFTAdapter {
         sourceCore = sourceCore_;
     }
 
+    /// @inheritdoc IMellowOFTAdapter
     function removeDust(uint256 amountLD_) public view returns (uint256) {
         return _removeDust(amountLD_);
     }
 
+    /// @inheritdoc IOFT
     function send(SendParam calldata sendParam_, MessagingFee calldata fee_, address refundAddress_)
         external
         payable
-        override
+        override(IOFT, OFTCore)
         returns (MessagingReceipt memory, OFTReceipt memory)
     {
         if (_msgSender() != sourceCore) {

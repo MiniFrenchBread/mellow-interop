@@ -2,58 +2,42 @@
 
 pragma solidity 0.8.25;
 
-import {MellowOFT} from "../oft/MellowOFT.sol";
-import {AccessControlEnumerableUpgradeable} from
-    "@openzeppelin/contracts-upgradeable/access/extensions/AccessControlEnumerableUpgradeable.sol";
-import {IERC4626} from "@openzeppelin/contracts/interfaces/IERC4626.sol";
+import "../interfaces/core/ITargetCoreStorage.sol";
 
-contract TargetCoreStorage is AccessControlEnumerableUpgradeable {
-    struct InitParams {
-        address admin;
-        string name;
-        string symbol;
-        address vault;
-        address claimer;
-        uint32 sourceEndpointId;
-        bytes32 sourceCoreAddress;
-        address depositRoleHolder;
-        address redeemRoleHolder;
-        address claimRoleHolder;
-        address pushRoleHolder;
-    }
-
-    struct TargetStorage {
-        MellowOFT oft;
-        IERC4626 vault;
-        address claimer;
-        uint32 sourceEndpointId;
-        bytes32 sourceCoreAddress;
-    }
-
+contract TargetCoreStorage is ITargetCoreStorage, AccessControlEnumerableUpgradeable {
+    /// @inheritdoc ITargetCoreStorage
     bytes32 public constant DEPOSIT_ROLE = keccak256("TARGET_CORE:DEPOSIT_ROLE");
+    /// @inheritdoc ITargetCoreStorage
     bytes32 public constant REDEEM_ROLE = keccak256("TARGET_CORE:REDEEM_ROLE");
+    /// @inheritdoc ITargetCoreStorage
     bytes32 public constant CLAIM_ROLE = keccak256("TARGET_CORE:CLAIM_ROLE");
+    /// @inheritdoc ITargetCoreStorage
     bytes32 public constant PUSH_ROLE = keccak256("TARGET_CORE:PUSH_ROLE");
 
     /// @dev keccak256(abi.encode(uint256(keccak256(abi.encodePacked("mellow-interop.storage.TargetCore"))) - 1)) & ~bytes32(uint256(0xff));
-    bytes32 public constant storageSlotRef = 0xa4b0e0c6727e33139d3521e8ca408d0b120de2c59eab4223b7ecace54ec3fa00;
+    bytes32 private constant storageSlotRef = 0xa4b0e0c6727e33139d3521e8ca408d0b120de2c59eab4223b7ecace54ec3fa00;
 
-    function oft() public view returns (MellowOFT) {
+    /// @inheritdoc ITargetCoreStorage
+    function oft() public view returns (IMellowOFT) {
         return _targetStorage().oft;
     }
 
+    /// @inheritdoc ITargetCoreStorage
     function vault() public view returns (IERC4626) {
         return _targetStorage().vault;
     }
 
+    /// @inheritdoc ITargetCoreStorage
     function claimer() public view returns (address) {
         return _targetStorage().claimer;
     }
 
+    /// @inheritdoc ITargetCoreStorage
     function sourceEndpointId() public view returns (uint32) {
         return _targetStorage().sourceEndpointId;
     }
 
+    /// @inheritdoc ITargetCoreStorage
     function sourceCoreAddress() public view returns (bytes32) {
         return _targetStorage().sourceCoreAddress;
     }
@@ -74,7 +58,7 @@ contract TargetCoreStorage is AccessControlEnumerableUpgradeable {
 
         TargetStorage storage $ = _targetStorage();
         $.vault = IERC4626(params.vault);
-        $.oft = MellowOFT($.vault.asset());
+        $.oft = IMellowOFT($.vault.asset());
         $.claimer = params.claimer;
         $.sourceEndpointId = params.sourceEndpointId;
         $.sourceCoreAddress = params.sourceCoreAddress;
@@ -103,6 +87,4 @@ contract TargetCoreStorage is AccessControlEnumerableUpgradeable {
             $.slot := storageSlotRef
         }
     }
-
-    event TargetCoreStorageInit(InitParams params);
 }

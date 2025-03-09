@@ -2,16 +2,13 @@
 
 pragma solidity 0.8.25;
 
-import {
-    ILayerZeroEndpointV2,
-    Origin
-} from "@layerzerolabs/lz-evm-protocol-v2/contracts/interfaces/ILayerZeroEndpointV2.sol";
-import {AccessControlEnumerable} from "@openzeppelin/contracts/access/extensions/AccessControlEnumerable.sol";
-import {Address} from "@openzeppelin/contracts/utils/Address.sol";
+import "../interfaces/utils/IDelegator.sol";
 
-contract Delegator is AccessControlEnumerable {
+contract Delegator is IDelegator, AccessControlEnumerable {
+    /// @inheritdoc IDelegator
     bytes32 public constant OPERATOR_ROLE = keccak256("OPERATOR_ROLE");
 
+    /// @inheritdoc IDelegator
     ILayerZeroEndpointV2 public immutable endpointV2;
 
     constructor(address admin_, address operator_, address endpointV2_) {
@@ -23,6 +20,7 @@ contract Delegator is AccessControlEnumerable {
         endpointV2 = ILayerZeroEndpointV2(endpointV2_);
     }
 
+    /// @inheritdoc IDelegator
     function call(address target, bytes calldata data, uint256 value)
         external
         payable
@@ -33,6 +31,7 @@ contract Delegator is AccessControlEnumerable {
         emit Call(target, data, value, response);
     }
 
+    /// @inheritdoc IDelegator
     function clear(address oapp_, Origin calldata origin_, bytes32 guid_, bytes calldata message_)
         external
         onlyRole(OPERATOR_ROLE)
@@ -42,7 +41,4 @@ contract Delegator is AccessControlEnumerable {
     }
 
     receive() external payable {}
-
-    event Call(address indexed target, bytes data, uint256 value, bytes response);
-    event Clear(address indexed oapp, Origin origin, bytes32 guid, bytes message);
 }

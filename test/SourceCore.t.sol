@@ -29,7 +29,7 @@ contract UnitTest is Test {
 
         vm.expectRevert("SourceCoreStorage: zero address");
         sourceCore.initialize(
-            SourceCoreStorage.InitParams({
+            ISourceCoreStorage.InitParams({
                 name: "SourceCoreName",
                 symbol: "SourceCoreSymbol",
                 admin: address(0),
@@ -46,7 +46,7 @@ contract UnitTest is Test {
 
         vm.expectRevert("SourceCoreStorage: zero address");
         sourceCore.initialize(
-            SourceCoreStorage.InitParams({
+            ISourceCoreStorage.InitParams({
                 name: "SourceCoreName",
                 symbol: "SourceCoreSymbol",
                 admin: admin,
@@ -63,7 +63,7 @@ contract UnitTest is Test {
 
         vm.expectRevert("SourceCoreStorage: zero value");
         sourceCore.initialize(
-            SourceCoreStorage.InitParams({
+            ISourceCoreStorage.InitParams({
                 name: "SourceCoreName",
                 symbol: "SourceCoreSymbol",
                 admin: admin,
@@ -80,7 +80,7 @@ contract UnitTest is Test {
 
         vm.expectRevert("SourceCoreStorage: zero value");
         sourceCore.initialize(
-            SourceCoreStorage.InitParams({
+            ISourceCoreStorage.InitParams({
                 name: "SourceCoreName",
                 symbol: "SourceCoreSymbol",
                 admin: admin,
@@ -97,7 +97,7 @@ contract UnitTest is Test {
 
         vm.expectRevert("SourceCoreStorage: zero value");
         sourceCore.initialize(
-            SourceCoreStorage.InitParams({
+            ISourceCoreStorage.InitParams({
                 name: "SourceCoreName",
                 symbol: "SourceCoreSymbol",
                 admin: admin,
@@ -113,7 +113,7 @@ contract UnitTest is Test {
         );
 
         sourceCore.initialize(
-            SourceCoreStorage.InitParams({
+            ISourceCoreStorage.InitParams({
                 name: "SourceCoreName",
                 symbol: "SourceCoreSymbol",
                 admin: admin,
@@ -130,7 +130,7 @@ contract UnitTest is Test {
 
         vm.expectRevert(abi.encodeWithSignature("InvalidInitialization()"));
         sourceCore.initialize(
-            SourceCoreStorage.InitParams({
+            ISourceCoreStorage.InitParams({
                 name: "SourceCoreName",
                 symbol: "SourceCoreSymbol",
                 admin: admin,
@@ -155,7 +155,7 @@ contract UnitTest is Test {
         vm.stopPrank();
 
         vm.startPrank(user);
-        WithdrawalQueue withdrawalQueue = sourceCore.withdrawalQueue();
+        IWithdrawalQueue withdrawalQueue = sourceCore.withdrawalQueue();
         vm.expectRevert("WithdrawalQueue: forbidden");
         withdrawalQueue.request(user, 1 ether);
         vm.expectRevert("WithdrawalQueue: forbidden");
