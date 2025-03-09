@@ -10,15 +10,13 @@ import {AccessControlEnumerable} from "@openzeppelin/contracts/access/extensions
 import {Address} from "@openzeppelin/contracts/utils/Address.sol";
 
 contract Delegator is AccessControlEnumerable {
-    error AddressZero();
-
     bytes32 public constant OPERATOR_ROLE = keccak256("OPERATOR_ROLE");
 
     ILayerZeroEndpointV2 public immutable endpointV2;
 
     constructor(address admin_, address operator_, address endpointV2_) {
         if (admin_ == address(0) || operator_ == address(0) || endpointV2_ == address(0)) {
-            revert AddressZero();
+            revert("Delegator: invalid parameters");
         }
         _grantRole(DEFAULT_ADMIN_ROLE, admin_);
         _grantRole(OPERATOR_ROLE, operator_);
