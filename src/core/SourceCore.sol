@@ -36,7 +36,7 @@ contract SourceCore is ISourceCore, SourceCoreStorage {
     }
 
     /// @inheritdoc IERC4626
-    function maxDeposit(address account) public view virtual override(ERC4626Upgradeable, IERC4626) returns (uint256) {
+    function maxDeposit(address) public view virtual override(ERC4626Upgradeable, IERC4626) returns (uint256) {
         uint256 limit_ = limit();
         if (limit_ == type(uint256).max) {
             return type(uint256).max;

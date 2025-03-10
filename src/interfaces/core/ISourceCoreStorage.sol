@@ -29,6 +29,7 @@ interface ISourceCoreStorage is IERC4626, IAccessControlEnumerable {
         address setWithdrawalDelayRoleHolder;
         address setValueRoleHolder;
         address setMaxAgeRoleHolder;
+        address setLimitRoleHolder;
     }
 
     struct SourceStorage {

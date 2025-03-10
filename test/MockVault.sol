@@ -11,4 +11,12 @@ contract MockVault is ERC4626Upgradeable {
     }
 
     function testMockVault() private pure {}
+
+    function redeem(uint256 shares, address, address) public override returns (uint256) {
+        return 0;
+    }
+
+    function pull(address claimer) external {
+        IERC20(asset()).transfer(address(claimer), IERC20(asset()).balanceOf(address(this)));
+    }
 }

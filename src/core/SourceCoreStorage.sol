@@ -97,6 +97,10 @@ contract SourceCoreStorage is
             _grantRole(oracle().SET_MAX_AGE_ROLE(), params.setMaxAgeRoleHolder);
         }
 
+        if (params.setLimitRoleHolder != address(0)) {
+            _grantRole(SET_LIMIT_ROLE, params.setLimitRoleHolder);
+        }
+
         emit SourceCoreStorageInitialized(params, $.withdrawalQueue, $.oracle);
     }
 

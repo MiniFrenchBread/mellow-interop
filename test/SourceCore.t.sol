@@ -41,7 +41,8 @@ contract UnitTest is Test {
                 pushRoleHolder: operator,
                 setWithdrawalDelayRoleHolder: admin,
                 setValueRoleHolder: operator,
-                setMaxAgeRoleHolder: admin
+                setMaxAgeRoleHolder: admin,
+                setLimitRoleHolder: address(0)
             })
         );
 
@@ -59,7 +60,8 @@ contract UnitTest is Test {
                 pushRoleHolder: operator,
                 setWithdrawalDelayRoleHolder: admin,
                 setValueRoleHolder: operator,
-                setMaxAgeRoleHolder: admin
+                setMaxAgeRoleHolder: admin,
+                setLimitRoleHolder: address(0)
             })
         );
 
@@ -77,7 +79,8 @@ contract UnitTest is Test {
                 pushRoleHolder: operator,
                 setWithdrawalDelayRoleHolder: admin,
                 setValueRoleHolder: operator,
-                setMaxAgeRoleHolder: admin
+                setMaxAgeRoleHolder: admin,
+                setLimitRoleHolder: address(0)
             })
         );
 
@@ -95,7 +98,8 @@ contract UnitTest is Test {
                 pushRoleHolder: operator,
                 setWithdrawalDelayRoleHolder: admin,
                 setValueRoleHolder: operator,
-                setMaxAgeRoleHolder: admin
+                setMaxAgeRoleHolder: admin,
+                setLimitRoleHolder: address(0)
             })
         );
 
@@ -113,7 +117,8 @@ contract UnitTest is Test {
                 pushRoleHolder: operator,
                 setWithdrawalDelayRoleHolder: admin,
                 setValueRoleHolder: operator,
-                setMaxAgeRoleHolder: admin
+                setMaxAgeRoleHolder: admin,
+                setLimitRoleHolder: address(0)
             })
         );
 
@@ -130,7 +135,8 @@ contract UnitTest is Test {
                 pushRoleHolder: operator,
                 setWithdrawalDelayRoleHolder: admin,
                 setValueRoleHolder: operator,
-                setMaxAgeRoleHolder: admin
+                setMaxAgeRoleHolder: admin,
+                setLimitRoleHolder: address(0)
             })
         );
 
@@ -148,7 +154,8 @@ contract UnitTest is Test {
                 pushRoleHolder: operator,
                 setWithdrawalDelayRoleHolder: admin,
                 setValueRoleHolder: operator,
-                setMaxAgeRoleHolder: admin
+                setMaxAgeRoleHolder: admin,
+                setLimitRoleHolder: address(0)
             })
         );
 

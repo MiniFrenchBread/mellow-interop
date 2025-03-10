@@ -54,7 +54,7 @@ contract TargetCore is ITargetCore, TargetCoreStorage {
         IMellowOFT oft_ = oft();
         assets = oft_.removeDust(assets);
         uint256 liquid = oft_.balanceOf(address(this));
-        if (assets < liquid) {
+        if (assets > liquid) {
             revert("TargetCore: insufficient assets");
         }
         if (assets == 0) {

@@ -9,231 +9,215 @@ contract IntegrationTest is TestHelperOz5 {
 
     using OptionsBuilder for bytes;
 
-    // uint16 public immutable sourceEid = 1;
-    // uint16 public immutable targetEid = 2;
+    uint16 public immutable sourceEid = 1;
+    uint16 public immutable targetEid = 2;
 
-    // LayerZeroAdapter public sourceAdapter;
-    // LayerZeroAdapter public targetAdapter;
+    TargetCore public targetCore;
+    SourceCore public sourceCore;
+    MellowOFT public mellowOFT;
+    MellowOFTAdapter public mellowOFTAdapter;
 
-    // TargetCore public targetCore;
-    // SourceCore public sourceCore;
+    Oracle public oracle;
+    WithdrawalQueue public withdrawalQueue;
 
-    // address public coreOwner = vm.createWallet("core-owner").addr;
-    // address public coreOperator = vm.createWallet("core-operator").addr;
+    address public coreOwner = vm.createWallet("core-owner").addr;
+    address public coreOperator = vm.createWallet("core-operator").addr;
+    address public proxyAdmin = vm.createWallet("proxy-admin").addr;
+    address public user = vm.createWallet("user").addr;
 
-    // MockVault public vault;
-    // RandomLib.Storage private rnd;
+    Delegator public sourceDelegator;
+    Delegator public targetDelegator;
 
-    // function setupOApps(
-    //     bytes memory _oappCreationCode,
-    //     address[2] memory cores,
-    //     address[2] memory delegators,
-    //     address gasReceiver
-    // ) public returns (address sourceOApp, address targetOApp) {
-    //     address[] memory oapps = new address[](2);
+    MockVault public vault;
+    MockClaimer public claimer;
+    RandomLib.Storage private rnd;
 
-    //     oapps[0] = _deployOApp(
-    //         _oappCreationCode, abi.encode(address(endpoints[1]), address(this), cores[0], uint32(2), gasReceiver)
-    //     );
-    //     oapps[1] = _deployOApp(
-    //         _oappCreationCode, abi.encode(address(endpoints[2]), address(this), cores[1], uint32(1), gasReceiver)
-    //     );
-    //     wireOApps(oapps);
+    function setUp() public virtual override {
+        super.setUp();
+        setUpEndpoints(2, LibraryType.UltraLightNode);
+        mellowOFTAdapter = new MellowOFTAdapter(Constants.WSTETH(), endpoints[sourceEid], address(this));
+        mellowOFT = new MellowOFT("MellowOFTName", "MellowOFTSymbol", endpoints[targetEid], address(this));
 
-    //     Ownable(oapps[0]).transferOwnership(delegators[0]);
-    //     Ownable(oapps[1]).transferOwnership(delegators[1]);
+        sourceDelegator = new Delegator(coreOwner, coreOperator, endpoints[sourceEid]);
+        targetDelegator = new Delegator(coreOwner, coreOperator, endpoints[targetEid]);
 
-    //     return (oapps[0], oapps[1]);
-    // }
+        mellowOFTAdapter.setPeer(targetEid, addressToBytes32(address(mellowOFT)));
+        mellowOFT.setPeer(sourceEid, addressToBytes32(address(mellowOFTAdapter)));
 
-    // function setUp() public virtual override {
-    //     super.setUp();
-    //     setUpEndpoints(2, LibraryType.UltraLightNode);
+        mellowOFTAdapter.transferOwnership(address(sourceDelegator));
+        mellowOFT.transferOwnership(address(targetDelegator));
 
-    //     address claimer = address(1324);
-    //     targetCore = TargetCore(
-    //         address(
-    //             new TransparentUpgradeableProxy(
-    //                 address(new TargetCore("TargetCoreStorage", 1)), address(0xdead), new bytes(0)
-    //             )
-    //         )
-    //     );
-    //     sourceCore = SourceCore(
-    //         address(
-    //             new TransparentUpgradeableProxy(
-    //                 address(new SourceCore("SourceCoreStorage", 1)), address(0xdead), new bytes(0)
-    //             )
-    //         )
-    //     );
-    //     Delegator sourceDelegator = new Delegator(coreOwner, coreOperator, endpoints[1]);
-    //     Delegator targetDelegator = new Delegator(coreOwner, coreOperator, endpoints[2]);
-    //     (address sourceAdapter_, address targetAdapter_) = setupOApps(
-    //         type(LayerZeroAdapter).creationCode,
-    //         [address(sourceCore), address(targetCore)],
-    //         [address(sourceDelegator), address(targetDelegator)],
-    //         coreOperator
-    //     );
-    //     sourceAdapter = LayerZeroAdapter(payable(sourceAdapter_));
-    //     targetAdapter = LayerZeroAdapter(payable(targetAdapter_));
+        SourceCore sourceCoreSingleton = new SourceCore();
+        TargetCore targetCoreSingleton = new TargetCore();
 
-    //     vm.startPrank(sourceAdapter.owner());
-    //     sourceAdapter.setGasReceiver(sourceAdapter.owner());
-    //     vm.stopPrank();
+        sourceCore =
+            SourceCore(address(new TransparentUpgradeableProxy(address(sourceCoreSingleton), proxyAdmin, new bytes(0))));
 
-    //     vm.startPrank(targetAdapter.owner());
-    //     targetAdapter.setGasReceiver(targetAdapter.owner());
-    //     vm.stopPrank();
+        targetCore =
+            TargetCore(address(new TransparentUpgradeableProxy(address(targetCoreSingleton), proxyAdmin, new bytes(0))));
 
-    //     vault = new MockVault();
-    //     targetCore.initialize(
-    //         coreOwner, address(vault), address(targetAdapter), address(claimer), "TargetName", "TargetSymbol"
-    //     );
-    //     vault.init("name", "symbol", address(targetCore.asset()));
-    //     sourceCore.initialize(
-    //         ISourceCore.InitParams(
-    //             coreOwner,
-    //             address(0),
-    //             100 ether,
-    //             false,
-    //             false,
-    //             false,
-    //             address(sourceAdapter),
-    //             Constants.WSTETH(),
-    //             "SourceName",
-    //             "SourceSymbol"
-    //         )
-    //     );
-    //     {
-    //         vm.startPrank(targetAdapter.owner());
-    //         EnforcedOptionParam[] memory params = new EnforcedOptionParam[](uint256(type(IAdapter.MessageType).max) + 1);
-    //         for (uint256 i = 0; i < params.length; i++) {
-    //             params[i] = EnforcedOptionParam({
-    //                 eid: targetAdapter.dstEid(),
-    //                 msgType: uint16(i),
-    //                 options: OptionsBuilder.newOptions().addExecutorLzReceiveOption(1e6, 0)
-    //             });
-    //         }
-    //         targetAdapter.setEnforcedOptions(params);
-    //         vm.stopPrank();
-    //     }
+        sourceCore.initialize(
+            ISourceCoreStorage.InitParams({
+                admin: coreOwner,
+                name: "SourceCoreName",
+                symbol: "SourceCoreSymbol",
+                mellowOFTAdapter: address(mellowOFTAdapter),
+                epochDuration: 1 weeks,
+                targetEndpointId: targetEid,
+                targetCoreAddress: addressToBytes32(address(targetCore)),
+                limit: 100 ether,
+                pushRoleHolder: coreOperator,
+                setWithdrawalDelayRoleHolder: coreOwner,
+                setValueRoleHolder: coreOperator,
+                setMaxAgeRoleHolder: coreOwner,
+                setLimitRoleHolder: coreOperator
+            })
+        );
 
-    //     {
-    //         vm.startPrank(sourceAdapter.owner());
-    //         EnforcedOptionParam[] memory params = new EnforcedOptionParam[](uint256(type(IAdapter.MessageType).max) + 1);
-    //         for (uint256 i = 0; i < params.length; i++) {
-    //             params[i] = EnforcedOptionParam({
-    //                 eid: sourceAdapter.dstEid(),
-    //                 msgType: uint16(i),
-    //                 options: OptionsBuilder.newOptions().addExecutorLzReceiveOption(1e6, 0)
-    //             });
-    //         }
-    //         sourceAdapter.setEnforcedOptions(params);
-    //         vm.stopPrank();
-    //     }
-    // }
+        vault = new MockVault();
+        vault.init("MockVaultName", "MockVaultSymbol", address(mellowOFT));
+        claimer = new MockClaimer();
 
-    // // WIP
-    // function requestDepositTransition() internal {}
-    // function pushDepositBatchSourceTransition() internal {}
-    // function cancelDepositTransition() internal {}
-    // function claimDepositTransition() internal {}
+        targetCore.initialize(
+            ITargetCoreStorage.InitParams({
+                admin: coreOwner,
+                vault: address(vault),
+                claimer: address(claimer),
+                sourceEndpointId: sourceEid,
+                sourceCoreAddress: addressToBytes32(address(sourceCore)),
+                depositRoleHolder: coreOperator,
+                redeemRoleHolder: coreOperator,
+                claimRoleHolder: coreOperator,
+                pushRoleHolder: coreOperator
+            })
+        );
 
-    // function requestRedeemTransition() internal {}
-    // function pushRedeemTransition() internal {}
-    // function cancelRedeemTransition() internal {}
-    // function claimRedeemTransition() internal {}
+        oracle = Oracle(address(sourceCore.oracle()));
+        withdrawalQueue = WithdrawalQueue(address(sourceCore.withdrawalQueue()));
 
-    // function verifyPacketSourceTransition() internal {}
-    // function verifyPacketTargetTransition() internal {}
+        vm.startPrank(coreOwner);
+        {
+            EnforcedOptionParam[] memory enforcedOptions = new EnforcedOptionParam[](1);
+            enforcedOptions[0] = EnforcedOptionParam({
+                eid: targetEid,
+                msgType: mellowOFT.SEND(),
+                options: OptionsBuilder.newOptions().addExecutorLzReceiveOption(1e6, 0)
+            });
+            sourceDelegator.call(
+                address(mellowOFTAdapter), abi.encodeCall(IOAppOptionsType3.setEnforcedOptions, (enforcedOptions)), 0
+            );
 
-    // function rejectRedeemBatchTransition() internal {}
-    // function rejectDepositBatchTransition() internal {}
-    // function claimTransition() internal {}
-    // function retryClaimTransition() internal {}
-    // function pushDepositBatchTargetTransition() internal {}
-    // function retryPushDepositBatchTransition() internal {}
+            enforcedOptions[0] = EnforcedOptionParam({
+                eid: sourceEid,
+                msgType: mellowOFTAdapter.SEND(),
+                options: OptionsBuilder.newOptions().addExecutorLzReceiveOption(1e6, 0)
+            });
+            targetDelegator.call(
+                address(mellowOFT), abi.encodeCall(IOAppOptionsType3.setEnforcedOptions, (enforcedOptions)), 0
+            );
+        }
+        oracle.setMaxAge(5 weeks);
+        vm.stopPrank();
 
-    // function()[1] internal transitions = [requestDepositTransition];
+        vm.startPrank(coreOperator);
+        oracle.setValue(1 ether);
+        sourceCore.setLimit(200 ether);
+        vm.stopPrank();
+    }
 
-    // function validate() internal {}
+    function logBalances(string memory t) public view {
+        address wsteth = Constants.WSTETH();
+        console2.log(t);
+        console2.log("wsteth source balance:", IERC20(wsteth).balanceOf(address(sourceCore)));
+        console2.log("oft target balance:", mellowOFT.balanceOf(address(targetCore)));
+        console2.log("target vault balance:", vault.totalAssets());
+        console2.log("user source lp balance:", sourceCore.balanceOf(user));
+        console2.log("user source asset balance:", IERC20(wsteth).balanceOf(user));
+        console2.log("withdrawal queue source lp balance:", sourceCore.balanceOf(address(withdrawalQueue)));
+        console2.log("withdrawal queue source asset balance:", IERC20(wsteth).balanceOf(address(withdrawalQueue)));
+        console2.log();
+    }
 
-    // function testSimulation() external {
-    //     rnd.seed = 42;
-    //     uint256 iterations = rnd.randInt(10, 100);
+    function testCompleteWorkflow() external {
+        vm.startPrank(user);
+        {
+            address wsteth = Constants.WSTETH();
+            deal(wsteth, user, 10 ether);
+            IERC20(wsteth).approve(address(sourceCore), 10 ether);
+            sourceCore.deposit(0.5 ether, user);
+            sourceCore.mint(0.5 ether, user);
+        }
+        vm.stopPrank();
+        logBalances("before push");
 
-    //     for (uint256 i = 0; i < iterations; i++) {
-    //         function() internal transition = transitions[rnd.randInt(0, transitions.length - 1)];
-    //         transition();
-    //         validate();
-    //     }
+        vm.startPrank(coreOperator);
+        deal(coreOperator, 1 ether);
+        sourceCore.pushToTarget{value: 1 ether}();
+        vm.stopPrank();
+        logBalances("after push to target");
 
-    //     address user = vm.createWallet("user").addr;
-    //     vm.startPrank(user);
-    //     address wsteth = Constants.WSTETH();
-    //     {
-    //         deal(wsteth, user, 1 ether);
-    //         deal(user, 2 ether);
-    //         IERC20(wsteth).approve(address(sourceCore), 1 ether);
-    //         uint256 batchId = sourceCore.requestDeposit{value: 0.001 ether}(1 ether);
+        verifyPackets(targetEid, addressToBytes32(address(mellowOFT)));
+        logBalances("after verification");
 
-    //         uint256 targetFee = targetAdapter.quoteMessage(
-    //             IAdapter.MessageType.DEPOSIT,
-    //             targetAdapter.encodeMessage(
-    //                 IAdapter.MessageType.DEPOSIT, abi.encode(type(uint256).max, type(uint256).max)
-    //             ),
-    //             new bytes(0)
-    //         );
+        vm.startPrank(coreOperator);
+        targetCore.deposit(1 ether);
+        vm.stopPrank();
+        logBalances("after deposit");
 
-    //         bytes memory options = OptionsBuilder.newOptions().addExecutorLzReceiveOption(1e6, uint128(targetFee));
-    //         bytes memory fullMessage = sourceAdapter.encodeMessage(
-    //             IAdapter.MessageType.DEPOSIT, abi.encode(type(uint256).max, type(uint256).max)
-    //         );
-    //         vm.stopPrank();
+        vm.startPrank(coreOperator);
+        targetCore.redeem(1 ether);
+        vm.stopPrank();
+        logBalances("after redeem");
 
-    //         vm.startPrank(coreOwner);
-    //         deal(coreOwner, 1 ether);
-    //         sourceCore.pushDepositBatch{value: 1 ether}(batchId);
-    //         vm.stopPrank();
+        vault.pull(address(claimer));
+        logBalances("after pull");
 
-    //         verifyPackets(targetEid, addressToBytes32(address(targetAdapter)));
+        vm.startPrank(coreOperator);
+        vm.expectRevert("TargetCore: claim failed");
+        targetCore.claim(abi.encodeCall(MockClaimer.claim, (address(mellowOFT), 0)));
+        targetCore.claim(abi.encodeCall(MockClaimer.claim, (address(mellowOFT), 1 ether)));
+        logBalances("after claim");
 
-    //         vm.startPrank(targetCore.getRoleMember(0x00, 0));
-    //         targetCore.grantRole(targetCore.OPERATOR_ROLE(), user);
-    //         vm.stopPrank();
+        deal(coreOperator, 1 ether);
+        targetCore.pushToSource{value: 0}(0);
+        vm.expectRevert("TargetCore: insufficient assets", address(targetCore));
+        targetCore.pushToSource{value: 1 ether}(2 ether);
+        targetCore.pushToSource{value: 1 ether}(1 ether);
+        vm.stopPrank();
+        logBalances("after push to source");
 
-    //         vm.startPrank(coreOwner);
-    //         deal(coreOwner, 1 ether);
-    //         targetCore.pushDepositBatch{value: 1 ether}(batchId);
-    //         vm.stopPrank();
+        verifyPackets(sourceEid, addressToBytes32(address(mellowOFTAdapter)));
+        logBalances("after verification");
 
-    //         verifyPackets(sourceEid, addressToBytes32(address(sourceAdapter)));
-    //     }
+        vm.startPrank(user);
+        sourceCore.requestWithdrawal(1 ether);
+        logBalances("after withdrawal request");
 
-    //     vm.startPrank(user);
-    //     sourceCore.claimDeposits(new uint256[](1), user);
+        skip(1 weeks);
+        withdrawalQueue.handleEpoch();
+        logBalances("after 1 week & handle epoch");
 
-    //     sourceCore.requestRedeem(1 ether);
-    //     {
-    //         deal(user, 2 ether);
-    //         vm.stopPrank();
+        skip(1 weeks);
+        withdrawalQueue.handleEpoch();
+        logBalances("after 2 weeks & handle epoch");
 
-    //         vm.startPrank(coreOwner);
-    //         deal(coreOwner, 1 ether);
-    //         sourceCore.pushRedeemBatch{value: 1 ether}(0);
-    //         vm.stopPrank();
+        withdrawalQueue.claim(0, user);
+        logBalances("after claim");
 
-    //         vm.startPrank(user);
+        vm.stopPrank();
 
-    //         verifyPackets(targetEid, addressToBytes32(address(targetAdapter)));
+        skip(4 weeks);
+        vm.expectRevert("Oracle: stale value");
+        oracle.getValue();
 
-    //         targetCore.claim{value: 1 ether}(0, new bytes(0));
+        vm.expectRevert("Oracle: forbidden");
+        oracle.setValue(1 ether + 1 gwei);
 
-    //         verifyPackets(sourceEid, addressToBytes32(address(sourceAdapter)));
+        vm.expectRevert("MellowOFTAdapter: already initialized");
+        mellowOFTAdapter.initialize(address(0));
 
-    //         sourceCore.claimRedeems(new uint256[](1), user);
-    //     }
-    //     vm.stopPrank();
-    // }
-
-    function test() external {}
+        vm.store(address(mellowOFTAdapter), bytes32(uint256(5)), bytes32(0));
+        vm.expectRevert("MellowOFTAdapter: zero address");
+        mellowOFTAdapter.initialize(address(0));
+    }
 }

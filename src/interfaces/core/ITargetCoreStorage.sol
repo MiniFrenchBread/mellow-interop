@@ -12,8 +12,6 @@ import {IERC4626} from "@openzeppelin/contracts/interfaces/IERC4626.sol";
 interface ITargetCoreStorage is IAccessControlEnumerable {
     struct InitParams {
         address admin;
-        string name;
-        string symbol;
         address vault;
         address claimer;
         uint32 sourceEndpointId;
