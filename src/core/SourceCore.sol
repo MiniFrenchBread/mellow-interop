@@ -7,8 +7,11 @@ import "./SourceCoreStorage.sol";
 contract SourceCore is ISourceCore, SourceCoreStorage {
     using SafeERC20 for IERC20;
 
+    address private immutable _deployer;
+
     constructor() {
         _disableInitializers();
+        _deployer = _msgSender();
     }
 
     modifier handleEpoch() {
@@ -23,6 +26,9 @@ contract SourceCore is ISourceCore, SourceCoreStorage {
 
     /// @inheritdoc ISourceCore
     function initialize(InitParams calldata params) external initializer {
+        if (_msgSender() != _deployer) {
+            revert("SourceCore: not deployer");
+        }
         __SourceCoreStorage_init(params);
     }
 

@@ -8,12 +8,18 @@ import "./TargetCoreStorage.sol";
 contract TargetCore is ITargetCore, TargetCoreStorage {
     using SafeERC20 for IERC20;
 
+    address private immutable _deployer;
+
     constructor() {
         _disableInitializers();
+        _deployer = _msgSender();
     }
 
     /// @inheritdoc ITargetCore
     function initialize(InitParams calldata params) external initializer {
+        if (_msgSender() != _deployer) {
+            revert("TargetCore: not deployer");
+        }
         __TargetCoreStorage_init(params);
     }
 
