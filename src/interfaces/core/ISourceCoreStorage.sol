@@ -61,5 +61,7 @@ interface ISourceCoreStorage is IERC4626, IAccessControlEnumerable {
 
     function setLimit(uint256) external;
 
+    event LimitSet(uint256 limit);
+
     event SourceCoreStorageInitialized(InitParams params, IWithdrawalQueue withdrawalQueue, IOracle oracle);
 }

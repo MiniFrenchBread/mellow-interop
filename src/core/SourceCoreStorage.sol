@@ -54,6 +54,7 @@ contract SourceCoreStorage is
     /// @inheritdoc ISourceCoreStorage
     function setLimit(uint256 limit_) external onlyRole(SET_LIMIT_ROLE) {
         _sourceStorage().limit = limit_;
+        emit LimitSet(limit_);
     }
 
     function __SourceCoreStorage_init(InitParams calldata params) internal onlyInitializing {
