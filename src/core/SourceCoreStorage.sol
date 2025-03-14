@@ -47,12 +47,12 @@ contract SourceCoreStorage is
     }
 
     /// @inheritdoc ISourceCoreStorage
-    function limit() public view override returns (uint256) {
+    function limit() public view returns (uint256) {
         return _sourceStorage().limit;
     }
 
     /// @inheritdoc ISourceCoreStorage
-    function setLimit(uint256 limit_) external override onlyRole(SET_LIMIT_ROLE) {
+    function setLimit(uint256 limit_) external onlyRole(SET_LIMIT_ROLE) {
         _sourceStorage().limit = limit_;
     }
 
