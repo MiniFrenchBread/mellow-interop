@@ -18,7 +18,7 @@ contract Deploy is Script {
     function run() external {
         uint256 deployerPk = uint256(bytes32(vm.envBytes("TEST_DEPLOYER")));
         address deployer = vm.addr(deployerPk);
-        bytes32 salt = keccak256(abi.encodePacked(deployer, block.chainid, 12345));
+        bytes32 salt = keccak256(abi.encodePacked(deployer, block.chainid, uint256(12345)));
 
         vm.startBroadcast(deployerPk);
         sourceCoreSingleton = new SourceCore{salt: salt}();
@@ -27,10 +27,8 @@ contract Deploy is Script {
         vm.stopBroadcast();
 
         console2.log("SourceCore singleton %s;", address(sourceCoreSingleton));
-        console2.log("Delegator %s;", address(delegator));
         console2.log("SourceCore %s;", address(sourceCore));
         console2.log("MellowOFTAdapter %s.", address(mellowOFTAdapter));
-
-        revert("OK");
+        revert("ok");
     }
 }

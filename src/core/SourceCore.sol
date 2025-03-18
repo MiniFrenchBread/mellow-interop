@@ -90,7 +90,7 @@ contract SourceCore is ISourceCore, SourceCoreStorage {
         uint256 liquid = asset_.balanceOf(address(this));
         uint256 pendingShares = withdrawalQueue().totalShares();
         if (pendingShares != 0) {
-            uint256 pending = Math.mulDiv(totalAssets(), pendingShares, totalSupply());
+            uint256 pending = previewRedeem(pendingShares);
             if (pending >= liquid) {
                 return 0;
             }

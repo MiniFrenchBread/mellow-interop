@@ -19,8 +19,11 @@ contract Oracle is IOracle {
     /// @inheritdoc IOracle
     uint256 public maxAge;
 
-    constructor(address core_) {
+    constructor(address core_, uint256 initialValue_, uint256 initialMaxAge_) {
         core = core_;
+        value = initialValue_;
+        lastUpdated = block.timestamp;
+        maxAge = initialMaxAge_;
     }
 
     modifier onlyRole(bytes32 role) {

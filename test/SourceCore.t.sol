@@ -42,7 +42,8 @@ contract UnitTest is Test {
                 setWithdrawalDelayRoleHolder: admin,
                 setValueRoleHolder: operator,
                 setMaxAgeRoleHolder: admin,
-                setLimitRoleHolder: address(0)
+                setLimitRoleHolder: address(0),
+                oracleMaxAge: 7 days
             })
         );
 
@@ -61,7 +62,8 @@ contract UnitTest is Test {
                 setWithdrawalDelayRoleHolder: admin,
                 setValueRoleHolder: operator,
                 setMaxAgeRoleHolder: admin,
-                setLimitRoleHolder: address(0)
+                setLimitRoleHolder: address(0),
+                oracleMaxAge: 7 days
             })
         );
 
@@ -80,7 +82,8 @@ contract UnitTest is Test {
                 setWithdrawalDelayRoleHolder: admin,
                 setValueRoleHolder: operator,
                 setMaxAgeRoleHolder: admin,
-                setLimitRoleHolder: address(0)
+                setLimitRoleHolder: address(0),
+                oracleMaxAge: 7 days
             })
         );
 
@@ -99,11 +102,12 @@ contract UnitTest is Test {
                 setWithdrawalDelayRoleHolder: admin,
                 setValueRoleHolder: operator,
                 setMaxAgeRoleHolder: admin,
-                setLimitRoleHolder: address(0)
+                setLimitRoleHolder: address(0),
+                oracleMaxAge: 7 days
             })
         );
 
-        vm.expectRevert("SourceCoreStorage: zero value");
+        vm.expectRevert("SourceCoreStorage: zero address");
         sourceCore.initialize(
             ISourceCoreStorage.InitParams({
                 name: "SourceCoreName",
@@ -118,7 +122,28 @@ contract UnitTest is Test {
                 setWithdrawalDelayRoleHolder: admin,
                 setValueRoleHolder: operator,
                 setMaxAgeRoleHolder: admin,
-                setLimitRoleHolder: address(0)
+                setLimitRoleHolder: address(0),
+                oracleMaxAge: 7 days
+            })
+        );
+
+        vm.expectRevert("SourceCoreStorage: zero value");
+        sourceCore.initialize(
+            ISourceCoreStorage.InitParams({
+                name: "SourceCoreName",
+                symbol: "SourceCoreSymbol",
+                admin: admin,
+                mellowOFTAdapter: address(mellowOFTAdapter),
+                epochDuration: 1,
+                targetEndpointId: 2,
+                targetCoreAddress: bytes32(uint256(1)),
+                limit: type(uint256).max,
+                pushRoleHolder: operator,
+                setWithdrawalDelayRoleHolder: admin,
+                setValueRoleHolder: operator,
+                setMaxAgeRoleHolder: admin,
+                setLimitRoleHolder: address(0),
+                oracleMaxAge: 0
             })
         );
 
@@ -136,7 +161,8 @@ contract UnitTest is Test {
                 setWithdrawalDelayRoleHolder: admin,
                 setValueRoleHolder: operator,
                 setMaxAgeRoleHolder: admin,
-                setLimitRoleHolder: address(0)
+                setLimitRoleHolder: address(0),
+                oracleMaxAge: 7 days
             })
         );
 
@@ -155,7 +181,8 @@ contract UnitTest is Test {
                 setWithdrawalDelayRoleHolder: admin,
                 setValueRoleHolder: operator,
                 setMaxAgeRoleHolder: admin,
-                setLimitRoleHolder: address(0)
+                setLimitRoleHolder: address(0),
+                oracleMaxAge: 7 days
             })
         );
 

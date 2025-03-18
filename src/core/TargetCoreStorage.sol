@@ -48,7 +48,7 @@ contract TargetCoreStorage is ITargetCoreStorage, AccessControlEnumerableUpgrade
         if (params.admin == address(0) || params.vault == address(0) || params.claimer == address(0)) {
             revert("TargetCore: zero address");
         }
-        if (params.sourceCoreAddress == bytes32(0)) {
+        if (params.sourceEndpointId == 0) {
             revert("TargetCore: zero value");
         }
 

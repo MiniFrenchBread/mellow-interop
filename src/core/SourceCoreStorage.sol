@@ -58,11 +58,14 @@ contract SourceCoreStorage is
     }
 
     function __SourceCoreStorage_init(InitParams calldata params) internal onlyInitializing {
-        if (params.admin == address(0) || params.mellowOFTAdapter == address(0)) {
+        if (
+            params.admin == address(0) || params.mellowOFTAdapter == address(0)
+                || params.targetCoreAddress == bytes32(0)
+        ) {
             revert("SourceCoreStorage: zero address");
         }
 
-        if (params.epochDuration == 0 || params.targetEndpointId == 0 || params.targetCoreAddress == bytes32(0)) {
+        if (params.epochDuration == 0 || params.targetEndpointId == 0 || params.oracleMaxAge == 0) {
             revert("SourceCoreStorage: zero value");
         }
 
@@ -77,7 +80,7 @@ contract SourceCoreStorage is
         $.withdrawalQueue = IWithdrawalQueue(address(new WithdrawalQueue(params.epochDuration, asset)));
         $.oftAdapter = IMellowOFTAdapter(params.mellowOFTAdapter);
         $.oftAdapter.initialize(address(this));
-        $.oracle = IOracle(address(new Oracle(address(this))));
+        $.oracle = IOracle(address(new Oracle(address(this), 1 ether, params.oracleMaxAge)));
         $.targetEndpointId = params.targetEndpointId;
         $.targetCoreAddress = params.targetCoreAddress;
         $.limit = params.limit;

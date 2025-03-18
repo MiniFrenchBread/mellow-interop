@@ -70,7 +70,8 @@ contract IntegrationTest is TestHelperOz5 {
                 setWithdrawalDelayRoleHolder: coreOwner,
                 setValueRoleHolder: coreOperator,
                 setMaxAgeRoleHolder: coreOwner,
-                setLimitRoleHolder: coreOperator
+                setLimitRoleHolder: coreOperator,
+                oracleMaxAge: 7 days
             })
         );
 
