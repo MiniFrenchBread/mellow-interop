@@ -13,13 +13,19 @@ contract Deploy is Script {
     address public immutable admin = 0x5C0F3DE4ba6AD53bb8E27f965170A52671e525Bf;
     address public immutable operator = 0x5C0F3DE4ba6AD53bb8E27f965170A52671e525Bf;
 
-    SourceCore public sourceCore = SourceCore(address(2));
-    MellowOFTAdapter public mellowOFTAdapter = MellowOFTAdapter(address(3));
-    MellowOFT public mellowOFT = MellowOFT(address(3));
+    // SourceCore singleton 0x8f06BEB555D57F0D20dB817FF138671451084e24;
+    // SourceCore 0xeea0Ed9d5A71569fDA65b66C5983011e67C30F8f;
+    // MellowOFTAdapter 0xBefE3a454df68688715A58E8842B0a697A3f0774.
+    // TargetCore singleton 0x8f06BEB555D57F0D20dB817FF138671451084e24;
+    // TargetCore 0xeea0Ed9d5A71569fDA65b66C5983011e67C30F8f;
+    // MellowOFT 0x5D52954aa43536be08751048de51B44dF1833204.
 
-    address public immutable targetOFT = address(4);
-    address public immutable targetCoreAddress = address(5);
-    uint32 public immutable targetEid = uint32(6);
+    SourceCore public sourceCore = SourceCore(0xeea0Ed9d5A71569fDA65b66C5983011e67C30F8f);
+    MellowOFTAdapter public mellowOFTAdapter = MellowOFTAdapter(0xBefE3a454df68688715A58E8842B0a697A3f0774);
+    MellowOFT public mellowOFT = MellowOFT(0x5D52954aa43536be08751048de51B44dF1833204);
+
+    address public targetCoreAddress = 0xeea0Ed9d5A71569fDA65b66C5983011e67C30F8f;
+    uint32 public targetEid = Constants.endpointId(Constants.ARBITRUM_CHAINID);
 
     function addressToBytes32(address addr_) internal pure returns (bytes32) {
         return bytes32(uint256(uint160(addr_)));
@@ -41,6 +47,7 @@ contract Deploy is Script {
                 targetEndpointId: targetEid,
                 targetCoreAddress: addressToBytes32(targetCoreAddress),
                 limit: 100 ether,
+                oracleMaxAge: 2 hours,
                 pushRoleHolder: operator,
                 setWithdrawalDelayRoleHolder: deployer,
                 setValueRoleHolder: deployer,
@@ -68,10 +75,10 @@ contract Deploy is Script {
                     configType: 2,
                     config: abi.encode(
                         UlnConfig({
-                            confirmations: 10,
+                            confirmations: 20,
                             requiredDVNCount: 1,
-                            optionalDVNCount: 1,
-                            optionalDVNThreshold: 1,
+                            optionalDVNCount: 0,
+                            optionalDVNThreshold: 0,
                             requiredDVNs: dvns,
                             optionalDVNs: new address[](0)
                         })
@@ -96,13 +103,14 @@ contract Deploy is Script {
         sourceCore.grantRole(oracle.SET_VALUE_ROLE(), operator);
         sourceCore.grantRole(0x00, admin);
 
-        sourceCore.renounceRole(withdrawalQueue.SET_WITHDRAWAL_DELAY_ROLE(), deployer);
-        sourceCore.renounceRole(oracle.SET_MAX_AGE_ROLE(), deployer);
-        sourceCore.renounceRole(oracle.SET_VALUE_ROLE(), deployer);
-        sourceCore.renounceRole(0x00, deployer);
-
+        if (operator != deployer && admin != deployer) {
+            sourceCore.renounceRole(withdrawalQueue.SET_WITHDRAWAL_DELAY_ROLE(), deployer);
+            sourceCore.renounceRole(oracle.SET_MAX_AGE_ROLE(), deployer);
+            sourceCore.renounceRole(oracle.SET_VALUE_ROLE(), deployer);
+            sourceCore.renounceRole(0x00, deployer);
+        }
         vm.stopBroadcast();
 
-        revert("OK");
+        // revert("OK");
     }
 }

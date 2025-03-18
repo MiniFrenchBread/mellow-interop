@@ -12,6 +12,7 @@
     "deploy:target:arbitrum": "forge script --use 0.8.25 scripts/TargetChainDeploy.s.sol:Deploy --rpc-url $(grep ARBITRUM_RPC .env | cut -d '=' -f2,3,4,5) --broadcast --legacy -vvvv --verify --etherscan-api-key $(grep ARBITRUM_API_KEY .env | cut -d '=' -f2)",
     "init:source:optimism": "forge script --use 0.8.25 scripts/SourceChainInit.s.sol:Deploy --rpc-url $(grep OPTIMISM_RPC .env | cut -d '=' -f2,3,4,5) --broadcast --legacy -vvvv --verify --etherscan-api-key $(grep OPTIMISM_API_KEY .env | cut -d '=' -f2)",
     "init:target:arbitrum": "forge script --use 0.8.25 scripts/TargetChainInit.s.sol:Deploy --rpc-url $(grep ARBITRUM_RPC .env | cut -d '=' -f2,3,4,5) --broadcast --legacy -vvvv --verify --etherscan-api-key $(grep ARBITRUM_API_KEY .env | cut -d '=' -f2)",
+    "script:optimism": "forge script --use 0.8.25 scripts/Script.s.sol:Deploy --rpc-url $(grep OPTIMISM_RPC .env | cut -d '=' -f2,3,4,5) --broadcast --legacy -vvvv --verify --etherscan-api-key $(grep OPTIMISM_API_KEY .env | cut -d '=' -f2)",
     "coverage:report": "forge coverage --ir-minimum -vvv --fork-url $(grep MAINNET_RPC .env | cut -d '=' -f2,3,4,5) --fork-block-number 21900000 --report lcov && genhtml lcov.info -o report --branch-coverage && rm lcov.info",
     "sizes": "forge build --sizes --force",
     "scc:report": "scc src --sort names --no-cocomo --exclude-dir interfaces --by-file --format wide > scc-report.txt"

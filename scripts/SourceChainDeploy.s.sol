@@ -18,10 +18,10 @@ contract Deploy is Script {
     function run() external {
         uint256 deployerPk = uint256(bytes32(vm.envBytes("TEST_DEPLOYER")));
         address deployer = vm.addr(deployerPk);
-        bytes32 salt = keccak256(abi.encodePacked(deployer, block.chainid, uint256(12345)));
+        bytes32 salt = bytes32(uint256(12345));
 
         vm.startBroadcast(deployerPk);
-        sourceCoreSingleton = new SourceCore{salt: salt}();
+        sourceCoreSingleton = new SourceCore();
         sourceCore = new TransparentUpgradeableProxy{salt: salt}(address(sourceCoreSingleton), proxyAdmin, "");
         mellowOFTAdapter = new MellowOFTAdapter{salt: salt}(Constants.wsteth(), Constants.endpointV2(), deployer);
         vm.stopBroadcast();
@@ -29,6 +29,6 @@ contract Deploy is Script {
         console2.log("SourceCore singleton %s;", address(sourceCoreSingleton));
         console2.log("SourceCore %s;", address(sourceCore));
         console2.log("MellowOFTAdapter %s.", address(mellowOFTAdapter));
-        revert("ok");
+        // revert("ok");
     }
 }
