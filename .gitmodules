@@ -22,3 +22,7 @@
 	path = lib/devtools
 	url = https://github.com/layerzero-labs/devtools
 	branch = main
+[submodule "lib/simple-lrt"]
+	path = lib/simple-lrt
+	url = https://github.com/mellow-finance/simple-lrt
+	branch = multi-vault
