@@ -7,3 +7,4 @@ solidity-bytes-utils/=lib/solidity-bytes-utils/
 @layerzerolabs/lz-evm-v1-0.7/=lib/layerzero-v1/
 @openzeppelin/contracts/=lib/openzeppelin-contracts/contracts
 @openzeppelin/contracts-upgradeable/=lib/openzeppelin-contracts-upgradeable/contracts
+@mellow-finance/simple-lrt/=lib/simple-lrt/src/

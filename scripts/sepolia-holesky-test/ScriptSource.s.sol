@@ -6,7 +6,7 @@ import "../Constants.sol";
 import "forge-std/Script.sol";
 
 contract Deploy is Script {
-    SourceCore public sourceCore = SourceCore(0xeea0Ed9d5A71569fDA65b66C5983011e67C30F8f);
+    SourceCore public sourceCore = SourceCore(0x0cFC89E03c52F1F091544De5848EBaFf21148DCc);
 
     function run() external {
         uint256 deployerPk = uint256(bytes32(vm.envBytes("TEST_DEPLOYER")));
@@ -14,6 +14,7 @@ contract Deploy is Script {
 
         vm.startBroadcast(deployerPk);
         IERC20 asset = IERC20(sourceCore.asset());
+        Address.sendValue(payable(address(asset)), 0.04 ether);
         uint256 balance = asset.balanceOf(deployer);
         // asset.approve(address(sourceCore), type(uint256).max);
         sourceCore.deposit(balance, deployer);
