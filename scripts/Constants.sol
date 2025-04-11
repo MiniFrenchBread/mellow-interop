@@ -120,24 +120,11 @@ library Constants {
         revert("Unsupported chain");
     }
 
-    function layerZeroDVN(uint256 chainId) internal pure returns (address) {
-        if (chainId == ARBITRUM_CHAINID) {
-            return 0x2f55C492897526677C5B68fb199ea31E2c126416;
-        } else if (chainId == OPTIMISM_CHAINID) {
-            return 0x6A02D83e8d433304bba74EF1c427913958187142;
-        }
-        revert("Unsupported chain");
-    }
-
-    function layerZeroDVN() internal view returns (address) {
-        return layerZeroDVN(block.chainid);
-    }
-
     function wsteth() internal view returns (address) {
         return wsteth(block.chainid);
     }
 
     function sendGas() internal pure returns (uint128) {
-        return 1e6;
+        return 150000;
     }
 }
