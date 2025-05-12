@@ -13,4 +13,16 @@ library DeployTarget {
         targetCore = new TransparentUpgradeableProxy{salt: salt}(address(targetCoreSigleton), proxyAdmin, "");
         mellowOFT = new MellowOFT{salt: salt}(name, symbol, Constants.endpointV2(), deployer);
     }
+
+    function deploy(
+        TargetCore targetCoreSigleton,
+        address proxyAdmin,
+        address deployer,
+        bytes32 salt,
+        string memory name,
+        string memory symbol
+    ) internal returns (TransparentUpgradeableProxy targetCore, MellowOFT mellowOFT) {
+        targetCore = new TransparentUpgradeableProxy{salt: salt}(address(targetCoreSigleton), proxyAdmin, "");
+        mellowOFT = new MellowOFT{salt: salt}(name, symbol, Constants.endpointV2(), deployer);
+    }
 }

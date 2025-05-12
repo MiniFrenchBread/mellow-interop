@@ -17,4 +17,12 @@ library DeploySource {
         sourceCore = new TransparentUpgradeableProxy{salt: salt}(address(sourceCoreSingleton), proxyAdmin, "");
         mellowOFTAdapter = new MellowOFTAdapter{salt: salt}(asset, Constants.endpointV2(), deployer);
     }
+
+    function deploy(SourceCore sourceCoreSingleton, address asset, address proxyAdmin, address deployer, bytes32 salt)
+        internal
+        returns (TransparentUpgradeableProxy sourceCore, MellowOFTAdapter mellowOFTAdapter)
+    {
+        sourceCore = new TransparentUpgradeableProxy{salt: salt}(address(sourceCoreSingleton), proxyAdmin, "");
+        mellowOFTAdapter = new MellowOFTAdapter{salt: salt}(asset, Constants.endpointV2(), deployer);
+    }
 }
