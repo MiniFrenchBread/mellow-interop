@@ -46,7 +46,7 @@ library InitSource {
                 pushRoleHolder: $.curatorOperator,
                 setWithdrawalDelayRoleHolder: $.deployer,
                 setValueRoleHolder: $.oracleUpdater,
-                setMaxAgeRoleHolder: $.oracleUpdater,
+                setMaxAgeRoleHolder: $.vaultAdmin,
                 setLimitRoleHolder: $.curatorAdmin
             })
         );

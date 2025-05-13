@@ -10,16 +10,22 @@ contract Deploy is Script {
         uint256 deployerPk = uint256(bytes32(vm.envBytes("DEPLOYER_PK")));
         address deployer = vm.addr(deployerPk);
 
+        TargetCore targetCoreSigleton = TargetCore(0xa21aa0efDA3a4557daAe3Eb96d78962a9db9Cf6A);
+
         vm.startBroadcast(deployerPk);
-        (TargetCore targetCoreSigleton, TransparentUpgradeableProxy targetCoreWSTETH, MellowOFT mellowOFTWSTETH) =
-        DeployTarget.deploy(
-            Constants.LISK_PROXY_ADMIN(), deployer, bytes32(uint256(1)), "Lisk wstETH Vault OFT", "lskETH-OFT"
+        (TransparentUpgradeableProxy targetCoreWSTETH, MellowOFT mellowOFTWSTETH) = DeployTarget.deploy(
+            targetCoreSigleton,
+            Constants.LISK_PROXY_ADMIN(),
+            deployer,
+            bytes32(uint256(4)),
+            "Lisk wstETH Vault OFT",
+            "lskETH-OFT"
         );
         (TransparentUpgradeableProxy targetCoreMBTC, MellowOFT mellowOFTMBTC) = DeployTarget.deploy(
             targetCoreSigleton,
             Constants.LISK_PROXY_ADMIN(),
             deployer,
-            bytes32(uint256(2)),
+            bytes32(uint256(5)),
             "Lisk rsmBTC Vault OFT",
             "rsM-BTC-OFT"
         );
@@ -27,7 +33,7 @@ contract Deploy is Script {
             targetCoreSigleton,
             Constants.LISK_PROXY_ADMIN(),
             deployer,
-            bytes32(uint256(3)),
+            bytes32(uint256(6)),
             "Lisk LSK Vault OFT",
             "rsLSK-OFT"
         );
@@ -50,11 +56,11 @@ contract Deploy is Script {
 }
 
 /*
-    TargetCore singleton 0xa21aa0efDA3a4557daAe3Eb96d78962a9db9Cf6A;
-    TargetCore WSTETH 0xb58D06eCC39cD6955542861d4374845Ed2014140;
-    MellowOFT WSTETH 0x7f98073e7234B7c7F9d0223168dBCd95feAfba58.
-    TargetCore MBTC 0x197A5CaE846984F00Ff650b11a31907aEd7B959c;
-    MellowOFT MBTC 0xdFCaB55563345Ed11616A377a6ba6189F2B57d4c.
-    TargetCore LSK 0xf2BA9Dab43d5D9014eCA96f058C6dF3945b919bD;
-    MellowOFT LSK 0x20347ece0df3B4B413eE656B9FfCc0562285be71.
+  TargetCore singleton 0xa21aa0efDA3a4557daAe3Eb96d78962a9db9Cf6A;
+  TargetCore WSTETH 0x7E0E4B05898181a597673cD5a8FeF2B9E36bEC97;
+  MellowOFT WSTETH 0x552f1C7E18Bc2013c7FEec7B8F2cB18c8461469e.
+  TargetCore MBTC 0xB2657a1EB016692509F321A4365551e2EC1173C2;
+  MellowOFT MBTC 0x57a013aC2A8790D3133f151F22a16fF2aC68627f.
+  TargetCore LSK 0xcc1D3926E079c826Cd807FdF825a6777846bb5C1;
+  MellowOFT LSK 0x1e6b0fF883378Bf8ECb6b8D3A292933f6859384f.
 */

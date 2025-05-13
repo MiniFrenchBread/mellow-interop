@@ -35,7 +35,7 @@ contract IntegrationTest is TestHelperOz5 {
     function setUp() public virtual override {
         super.setUp();
         setUpEndpoints(2, LibraryType.UltraLightNode);
-        mellowOFTAdapter = new MellowOFTAdapter(Constants.WSTETH(), endpoints[sourceEid], address(this));
+        mellowOFTAdapter = new MellowOFTAdapter(Constants.wsteth(), endpoints[sourceEid], address(this));
         mellowOFT = new MellowOFT("MellowOFTName", "MellowOFTSymbol", endpoints[targetEid], address(this));
 
         sourceDelegator = new Delegator(coreOwner, coreOperator, endpoints[sourceEid]);
@@ -127,7 +127,7 @@ contract IntegrationTest is TestHelperOz5 {
     }
 
     function logBalances(string memory t) public view {
-        address wsteth = Constants.WSTETH();
+        address wsteth = Constants.wsteth();
         console2.log(t);
         console2.log("wsteth source balance:", IERC20(wsteth).balanceOf(address(sourceCore)));
         console2.log("oft target balance:", mellowOFT.balanceOf(address(targetCore)));
@@ -142,7 +142,7 @@ contract IntegrationTest is TestHelperOz5 {
     function testCompleteWorkflow() external {
         vm.startPrank(user);
         {
-            address wsteth = Constants.WSTETH();
+            address wsteth = Constants.wsteth();
             deal(wsteth, user, 10 ether);
             IERC20(wsteth).approve(address(sourceCore), 10 ether);
             sourceCore.deposit(0.5 ether, user);

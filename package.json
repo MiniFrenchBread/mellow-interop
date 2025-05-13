@@ -7,6 +7,8 @@
     "compile": "forge build",
     "prettier": "forge fmt && forge fmt ./test/** && forge fmt ./scripts/**",
     "test:mainnet": "forge test -vvv --fork-url $(grep MAINNET_RPC .env | cut -d '=' -f2,3,4,5) --fork-block-number 21900000",
+    "test:lisk:acceptance:lisk": "forge test -vvv --fork-url $(grep LISK_RPC .env | cut -d '=' -f2,3,4,5) --match-test testLisk --fork-block-number 16205377",
+    "test:lisk:acceptance:mainnet": "forge test -vvv --fork-url $(grep MAINNET_RPC .env | cut -d '=' -f2,3,4,5) --match-test testLisk --fork-block-number 22474323",
     "deploy:holesky": "forge script --use 0.8.25 scripts/Deploy.s.sol:Deploy --rpc-url $(grep HOLESKY_RPC .env | cut -d '=' -f2,3,4,5) --broadcast --legacy -vvvv --verify --etherscan-api-key $(grep HOLESKY_API_KEY .env | cut -d '=' -f2)",
     "deploy:source:1135-1": "forge script --use 0.8.25 scripts/lisk-ethereum/DeploySource.s.sol:Deploy --rpc-url $(grep LISK_RPC .env | cut -d '=' -f2,3,4,5) --broadcast --legacy -vvvv --verify --etherscan-api-key $(grep LISK_API_KEY .env | cut -d '=' -f2)",
     "deploy:target:1135-1": "forge script --use 0.8.25 scripts/lisk-ethereum/DeployTarget.s.sol:Deploy --rpc-url $(grep MAINNET_RPC .env | cut -d '=' -f2,3,4,5) --broadcast --slow  -vvvv --verify --etherscan-api-key $(grep MAINNET_API_KEY .env | cut -d '=' -f2)",

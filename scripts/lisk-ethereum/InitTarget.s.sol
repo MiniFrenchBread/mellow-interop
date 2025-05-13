@@ -3,31 +3,32 @@
 pragma solidity 0.8.25;
 
 import "../common/InitTarget.sol";
-import "forge-std/Script.sol";
+
 import {IMultiVault, MultiVault} from "@mellow-finance/simple-lrt/vaults/MultiVault.sol";
+import "forge-std/Script.sol";
 
 contract Deploy is Script {
     /*
-        SourceCore WSTETH 0x2dE9fa30638960580dbFFece296333e5ca8Cb255;
-        MellowOFTAdapter WSTETH 0xA1e96AE1Af42EBF3E3D8738c576d2fD57c02e05b;
-        TargetCore WSTETH 0xb58D06eCC39cD6955542861d4374845Ed2014140;
-        MellowOFT WSTETH 0x7f98073e7234B7c7F9d0223168dBCd95feAfba58;
-        MultiVault WSTETH 0x176209cBD27CF9DF26d2A971E6649417Cb3F9b7F.
+        SourceCore WSTETH 0x1b10E2270780858923cdBbC9B5423e29fffD1A44;
+        MellowOFTAdapter WSTETH 0x1ddBeBd9aaBe4B9660d9Bba5de2949DA1Ae4D229;
+        TargetCore WSTETH 0x7E0E4B05898181a597673cD5a8FeF2B9E36bEC97;
+        MellowOFT WSTETH 0x552f1C7E18Bc2013c7FEec7B8F2cB18c8461469e;
+        vault: 0x628C053E196FcCB986Cf2105136Ef11e4CE5d4ED.
 
-        SourceCore MBTC 0xAe2b785bbBE30755585df96F0d0FdE2A9e28c3fC;
-        MellowOFTAdapter MBTC 0x5dc6B9Fb10F11a134914c025990A54C3CFEb5154;
-        TargetCore MBTC 0x197A5CaE846984F00Ff650b11a31907aEd7B959c;
-        MellowOFT MBTC 0xdFCaB55563345Ed11616A377a6ba6189F2B57d4c;
-        MultiVault MBTC 0xfc9102b1756f244E4c656844e74c19B00C9FdBDB.
+        SourceCore MBTC 0xa67E8B2E43B70D98E1896D3f9d563f3ABdB8Adcd;
+        MellowOFTAdapter MBTC 0x34B22c672b3dA8396f4A66324703590a945129De;
+        TargetCore MBTC 0xB2657a1EB016692509F321A4365551e2EC1173C2;
+        MellowOFT MBTC 0x57a013aC2A8790D3133f151F22a16fF2aC68627f;
+        vault: 0x354822625Acd925d02ac13f1C96dba2aA5EE7cC6.
 
-        SourceCore LSK 0x49203fC2cD1924D75BA15Da77C337f8eF332E318;
-        MellowOFTAdapter LSK 0x60Ea399d5C03C2aE799093F8fd3F44480BEB1e25.
-        TargetCore LSK 0xf2BA9Dab43d5D9014eCA96f058C6dF3945b919bD;
-        MellowOFT LSK 0x20347ece0df3B4B413eE656B9FfCc0562285be71;
-        MultiVault LSK 0x97Ea34B28535423B51638878B68CAe37e51b0652.
+        SourceCore LSK 0x8cf94b5A37b1835D634b7a3e6b1EE02Ce7F0CD30;
+        MellowOFTAdapter LSK 0xcDf0b12Ef7716f3848F98D77dD842bFBDCF6b857;
+        TargetCore LSK 0xcc1D3926E079c826Cd807FdF825a6777846bb5C1;
+        MellowOFT LSK 0x1e6b0fF883378Bf8ECb6b8D3A292933f6859384f;
+        vault: 0xB1653ee92b724a033338CC17896E06275A4E9335.
     */
 
-    address claimer = 0xc36A7e12311679898a326D2893003C48C3ACAcd5;
+    address claimer = 0x25024a3017B8da7161d8c5DCcF768F8678fB5802;
 
     function run() external {
         uint256 deployerPk = uint256(bytes32(vm.envBytes("DEPLOYER_PK")));
@@ -37,17 +38,17 @@ contract Deploy is Script {
         uint32 sourceEid = Constants.endpointId(Constants.LISK_CHAINID);
         {
             /*
-                SourceCore WSTETH 0x2dE9fa30638960580dbFFece296333e5ca8Cb255;
-                MellowOFTAdapter WSTETH 0xA1e96AE1Af42EBF3E3D8738c576d2fD57c02e05b;
-                TargetCore WSTETH 0xb58D06eCC39cD6955542861d4374845Ed2014140;
-                MellowOFT WSTETH 0x7f98073e7234B7c7F9d0223168dBCd95feAfba58;
-                MultiVault WSTETH 0x176209cBD27CF9DF26d2A971E6649417Cb3F9b7F.
+                SourceCore WSTETH 0x1b10E2270780858923cdBbC9B5423e29fffD1A44;
+                MellowOFTAdapter WSTETH 0x1ddBeBd9aaBe4B9660d9Bba5de2949DA1Ae4D229;
+                TargetCore WSTETH 0x7E0E4B05898181a597673cD5a8FeF2B9E36bEC97;
+                MellowOFT WSTETH 0x552f1C7E18Bc2013c7FEec7B8F2cB18c8461469e;
+                vault: 0x628C053E196FcCB986Cf2105136Ef11e4CE5d4ED.
             */
-            SourceCore sourceCore = SourceCore(0x2dE9fa30638960580dbFFece296333e5ca8Cb255);
-            TargetCore targetCore = TargetCore(0xb58D06eCC39cD6955542861d4374845Ed2014140);
-            MellowOFTAdapter mellowOFTAdapter = MellowOFTAdapter(0xA1e96AE1Af42EBF3E3D8738c576d2fD57c02e05b);
-            MellowOFT mellowOFT = MellowOFT(0x7f98073e7234B7c7F9d0223168dBCd95feAfba58);
-            address vault = 0x176209cBD27CF9DF26d2A971E6649417Cb3F9b7F;
+            SourceCore sourceCore = SourceCore(0x1b10E2270780858923cdBbC9B5423e29fffD1A44);
+            TargetCore targetCore = TargetCore(0x7E0E4B05898181a597673cD5a8FeF2B9E36bEC97);
+            MellowOFTAdapter mellowOFTAdapter = MellowOFTAdapter(0x1ddBeBd9aaBe4B9660d9Bba5de2949DA1Ae4D229);
+            MellowOFT mellowOFT = MellowOFT(0x552f1C7E18Bc2013c7FEec7B8F2cB18c8461469e);
+            address vault = 0x628C053E196FcCB986Cf2105136Ef11e4CE5d4ED;
             InitTarget.init(
                 InitTarget.InitParams({
                     targetCore: targetCore,
@@ -68,17 +69,17 @@ contract Deploy is Script {
 
         {
             /*
-                SourceCore MBTC 0xAe2b785bbBE30755585df96F0d0FdE2A9e28c3fC;
-                MellowOFTAdapter MBTC 0x5dc6B9Fb10F11a134914c025990A54C3CFEb5154;
-                TargetCore MBTC 0x197A5CaE846984F00Ff650b11a31907aEd7B959c;
-                MellowOFT MBTC 0xdFCaB55563345Ed11616A377a6ba6189F2B57d4c;
-                MultiVault MBTC 0xfc9102b1756f244E4c656844e74c19B00C9FdBDB.
+                SourceCore MBTC 0xa67E8B2E43B70D98E1896D3f9d563f3ABdB8Adcd;
+                MellowOFTAdapter MBTC 0x34B22c672b3dA8396f4A66324703590a945129De;
+                TargetCore MBTC 0xB2657a1EB016692509F321A4365551e2EC1173C2;
+                MellowOFT MBTC 0x57a013aC2A8790D3133f151F22a16fF2aC68627f;
+                vault: 0x354822625Acd925d02ac13f1C96dba2aA5EE7cC6.
             */
-            SourceCore sourceCore = SourceCore(0xAe2b785bbBE30755585df96F0d0FdE2A9e28c3fC);
-            TargetCore targetCore = TargetCore(0x197A5CaE846984F00Ff650b11a31907aEd7B959c);
-            MellowOFTAdapter mellowOFTAdapter = MellowOFTAdapter(0x5dc6B9Fb10F11a134914c025990A54C3CFEb5154);
-            MellowOFT mellowOFT = MellowOFT(0xdFCaB55563345Ed11616A377a6ba6189F2B57d4c);
-            address vault = 0xfc9102b1756f244E4c656844e74c19B00C9FdBDB;
+            SourceCore sourceCore = SourceCore(0xa67E8B2E43B70D98E1896D3f9d563f3ABdB8Adcd);
+            TargetCore targetCore = TargetCore(0xB2657a1EB016692509F321A4365551e2EC1173C2);
+            MellowOFTAdapter mellowOFTAdapter = MellowOFTAdapter(0x34B22c672b3dA8396f4A66324703590a945129De);
+            MellowOFT mellowOFT = MellowOFT(0x57a013aC2A8790D3133f151F22a16fF2aC68627f);
+            address vault = 0x354822625Acd925d02ac13f1C96dba2aA5EE7cC6;
             InitTarget.init(
                 InitTarget.InitParams({
                     targetCore: targetCore,
@@ -99,17 +100,17 @@ contract Deploy is Script {
 
         {
             /*
-                SourceCore LSK 0x49203fC2cD1924D75BA15Da77C337f8eF332E318;
-                MellowOFTAdapter LSK 0x60Ea399d5C03C2aE799093F8fd3F44480BEB1e25.
-                TargetCore LSK 0xf2BA9Dab43d5D9014eCA96f058C6dF3945b919bD;
-                MellowOFT LSK 0x20347ece0df3B4B413eE656B9FfCc0562285be71;
-                MultiVault LSK 0x97Ea34B28535423B51638878B68CAe37e51b0652.
+                SourceCore LSK 0x8cf94b5A37b1835D634b7a3e6b1EE02Ce7F0CD30;
+                MellowOFTAdapter LSK 0xcDf0b12Ef7716f3848F98D77dD842bFBDCF6b857;
+                TargetCore LSK 0xcc1D3926E079c826Cd807FdF825a6777846bb5C1;
+                MellowOFT LSK 0x1e6b0fF883378Bf8ECb6b8D3A292933f6859384f;
+                vault: 0xB1653ee92b724a033338CC17896E06275A4E9335.
             */
-            SourceCore sourceCore = SourceCore(0x49203fC2cD1924D75BA15Da77C337f8eF332E318);
-            TargetCore targetCore = TargetCore(0xf2BA9Dab43d5D9014eCA96f058C6dF3945b919bD);
-            MellowOFTAdapter mellowOFTAdapter = MellowOFTAdapter(0x60Ea399d5C03C2aE799093F8fd3F44480BEB1e25);
-            MellowOFT mellowOFT = MellowOFT(0x20347ece0df3B4B413eE656B9FfCc0562285be71);
-            address vault = 0x97Ea34B28535423B51638878B68CAe37e51b0652;
+            SourceCore sourceCore = SourceCore(0x8cf94b5A37b1835D634b7a3e6b1EE02Ce7F0CD30);
+            TargetCore targetCore = TargetCore(0xcc1D3926E079c826Cd807FdF825a6777846bb5C1);
+            MellowOFTAdapter mellowOFTAdapter = MellowOFTAdapter(0xcDf0b12Ef7716f3848F98D77dD842bFBDCF6b857);
+            MellowOFT mellowOFT = MellowOFT(0x1e6b0fF883378Bf8ECb6b8D3A292933f6859384f);
+            address vault = 0xB1653ee92b724a033338CC17896E06275A4E9335;
             InitTarget.init(
                 InitTarget.InitParams({
                     targetCore: targetCore,
@@ -129,5 +130,6 @@ contract Deploy is Script {
         }
 
         vm.stopBroadcast();
+        // revert("ok");
     }
 }

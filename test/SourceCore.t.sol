@@ -25,7 +25,7 @@ contract UnitTest is Test {
 
         SourceCore sourceCore =
             SourceCore(address(new TransparentUpgradeableProxy(singleton, proxyAdmin, new bytes(0))));
-        MellowOFTAdapter mellowOFTAdapter = new MellowOFTAdapter(Constants.WSTETH(), Constants.LZ_ENDPOINT(), delegator);
+        MellowOFTAdapter mellowOFTAdapter = new MellowOFTAdapter(Constants.wsteth(), Constants.endpointV2(), delegator);
 
         vm.expectRevert("SourceCoreStorage: zero address");
         sourceCore.initialize(
@@ -202,8 +202,8 @@ contract UnitTest is Test {
         vm.expectRevert("WithdrawalQueue: forbidden");
         withdrawalQueue.setWithdrawalDelay(2 weeks);
 
-        deal(Constants.WSTETH(), user, 1 ether);
-        IERC20(Constants.WSTETH()).approve(address(sourceCore), 1 ether);
+        deal(Constants.wsteth(), user, 1 ether);
+        IERC20(Constants.wsteth()).approve(address(sourceCore), 1 ether);
         sourceCore.deposit(0.5 ether, user);
         sourceCore.mint(0.5 ether, user);
 
@@ -239,14 +239,14 @@ contract UnitTest is Test {
         vm.startPrank(user);
 
         for (uint256 i = 0; i < 30; i++) {
-            uint256 assets = IERC20(Constants.WSTETH()).balanceOf(address(sourceCore));
-            deal(Constants.WSTETH(), address(sourceCore), 0);
+            uint256 assets = IERC20(Constants.wsteth()).balanceOf(address(sourceCore));
+            deal(Constants.wsteth(), address(sourceCore), 0);
             withdrawalQueue.claim(0, user);
 
-            deal(Constants.WSTETH(), address(sourceCore), 1);
+            deal(Constants.wsteth(), address(sourceCore), 1);
             withdrawalQueue.claim(0, user);
 
-            deal(Constants.WSTETH(), address(sourceCore), assets);
+            deal(Constants.wsteth(), address(sourceCore), assets);
             withdrawalQueue.claim(0, user);
             skip(1 days);
         }

@@ -9,19 +9,19 @@ contract Deploy is Script {
     function run() external {
         uint256 deployerPk = uint256(bytes32(vm.envBytes("DEPLOYER_PK")));
         address deployer = vm.addr(deployerPk);
+
+        SourceCore sourceCoreSingleton = SourceCore(0x39c62c6308BeD7B0832CAfc2BeA0C0eDC7f2060c);
         vm.startBroadcast(deployerPk);
-        (
-            SourceCore sourceCoreSingleton,
-            TransparentUpgradeableProxy sourceCoreWSTETH,
-            MellowOFTAdapter mellowOFTAdapterWSTETH
-        ) = DeploySource.deploy(Constants.wsteth(), Constants.LISK_PROXY_ADMIN(), deployer, bytes32(uint256(1)));
+        (TransparentUpgradeableProxy sourceCoreWSTETH, MellowOFTAdapter mellowOFTAdapterWSTETH) = DeploySource.deploy(
+            sourceCoreSingleton, Constants.wsteth(), Constants.LISK_PROXY_ADMIN(), deployer, bytes32(uint256(4))
+        );
 
         (TransparentUpgradeableProxy sourceCoreMBTC, MellowOFTAdapter mellowOFTAdapterMBTC) = DeploySource.deploy(
-            sourceCoreSingleton, Constants.mbtc(), Constants.LISK_PROXY_ADMIN(), deployer, bytes32(uint256(2))
+            sourceCoreSingleton, Constants.mbtc(), Constants.LISK_PROXY_ADMIN(), deployer, bytes32(uint256(5))
         );
 
         (TransparentUpgradeableProxy sourceCoreLSK, MellowOFTAdapter mellowOFTAdapterLSK) = DeploySource.deploy(
-            sourceCoreSingleton, Constants.lsk(), Constants.LISK_PROXY_ADMIN(), deployer, bytes32(uint256(3))
+            sourceCoreSingleton, Constants.lsk(), Constants.LISK_PROXY_ADMIN(), deployer, bytes32(uint256(6))
         );
         vm.stopBroadcast();
 
@@ -40,11 +40,11 @@ contract Deploy is Script {
 }
 
 /*
-    SourceCore singleton 0x39c62c6308BeD7B0832CAfc2BeA0C0eDC7f2060c;
-    SourceCore WSTETH 0x2dE9fa30638960580dbFFece296333e5ca8Cb255;
-    MellowOFTAdapter WSTETH 0xA1e96AE1Af42EBF3E3D8738c576d2fD57c02e05b.
-    SourceCore MBTC 0xAe2b785bbBE30755585df96F0d0FdE2A9e28c3fC;
-    MellowOFTAdapter MBTC 0x5dc6B9Fb10F11a134914c025990A54C3CFEb5154.
-    SourceCore LSK 0x49203fC2cD1924D75BA15Da77C337f8eF332E318;
-    MellowOFTAdapter LSK 0x60Ea399d5C03C2aE799093F8fd3F44480BEB1e25.
+  SourceCore singleton 0x39c62c6308BeD7B0832CAfc2BeA0C0eDC7f2060c;
+  SourceCore WSTETH 0x1b10E2270780858923cdBbC9B5423e29fffD1A44;
+  MellowOFTAdapter WSTETH 0x1ddBeBd9aaBe4B9660d9Bba5de2949DA1Ae4D229.
+  SourceCore MBTC 0xa67E8B2E43B70D98E1896D3f9d563f3ABdB8Adcd;
+  MellowOFTAdapter MBTC 0x34B22c672b3dA8396f4A66324703590a945129De.
+  SourceCore LSK 0x8cf94b5A37b1835D634b7a3e6b1EE02Ce7F0CD30;
+  MellowOFTAdapter LSK 0xcDf0b12Ef7716f3848F98D77dD842bFBDCF6b857.
 */
