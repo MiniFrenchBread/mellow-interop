@@ -17,6 +17,17 @@ contract Collector {
         return collectWithdrawalRequests(core, account, 256);
     }
 
+    function estimateWithdraw(address core, uint256 shares)
+        public
+        view
+        returns (uint256 expectedAssets, uint256 expectedTimestamp)
+    {
+        IWithdrawalQueue q = SourceCore(core).withdrawalQueue();
+        uint256 epochs = q.currentEpoch();
+        expectedTimestamp = q.initTimestamp() + (epochs + 1) * q.epochDuration() + q.withdrawalDelay();
+        expectedAssets = Math.mulDiv(SourceCore(core).oracle().value(), shares, 1 ether);
+    }
+
     function collectWithdrawalRequests(address core, address account, uint256 maxResponse)
         public
         view
