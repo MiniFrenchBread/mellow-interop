@@ -26,7 +26,6 @@ contract AcceptanceTest is AcceptanceRunner, Test {
         vault: 0xB1653ee92b724a033338CC17896E06275A4E9335.
     */
 
-
     function testLiskWstETHDeployment() external {
         Deployment memory $ = Deployment({
             asset: Constants.wsteth(Constants.LISK_CHAINID),
@@ -56,7 +55,7 @@ contract AcceptanceTest is AcceptanceRunner, Test {
             console2.log("Unsupported Chain ID:", block.chainid);
         }
     }
-    
+
     function testLiskMBTCDeployment() external {
         Deployment memory $ = Deployment({
             asset: Constants.mbtc(Constants.LISK_CHAINID),
