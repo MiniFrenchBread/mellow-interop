@@ -22,7 +22,7 @@ interface IClaimer {
 }
 
 contract TargetHelper {
-    function getNounces(TargetCore core) public view returns (uint256 inboundNonce, uint256 outboundNonce) {
+    function getNonces(TargetCore core) public view returns (uint256 inboundNonce, uint256 outboundNonce) {
         ILayerZeroEndpointV2 endpoint = IOAppCore(address(core.oft())).endpoint();
         uint32 sourceEid = core.sourceEndpointId();
         bytes32 sourceCore = core.sourceCoreAddress();

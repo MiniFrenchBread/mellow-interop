@@ -6,7 +6,7 @@ import "../core/SourceCore.sol";
 import {ILayerZeroEndpointV2, IOAppCore} from "@layerzerolabs/oapp-evm/contracts/oapp/interfaces/IOAppCore.sol";
 
 contract SourceHelper {
-    function getNounces(SourceCore core) public view returns (uint256 inboundNonce, uint256 outboundNonce) {
+    function getNonces(SourceCore core) public view returns (uint256 inboundNonce, uint256 outboundNonce) {
         ILayerZeroEndpointV2 endpoint = IOAppCore(address(core.oftAdapter())).endpoint();
         uint32 targetEid = core.targetEndpointId();
         bytes32 targetCore = core.targetCoreAddress();
