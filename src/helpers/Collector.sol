@@ -2,7 +2,7 @@
 
 pragma solidity 0.8.25;
 
-import "../../src/core/SourceCore.sol";
+import "../core/SourceCore.sol";
 
 contract Collector {
     struct Request {
