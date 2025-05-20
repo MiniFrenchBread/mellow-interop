@@ -30,36 +30,24 @@ contract TargetHelper {
         outboundNonce = endpoint.outboundNonce(address(core), sourceEid, sourceCore);
     }
 
-    /// @dev only Symbiotic integration at this moment
+    /// @dev only 1 Symbiotic subvault is supported
     function getAmounts(TargetCore core, uint256 redeemDemandAssets)
         public
         view
-        returns (uint256 pushAssets, uint256 claimableAssets, bytes memory claimData, uint256 redeemShares)
+        returns (uint256 pushAssets, bytes memory claimData, uint256 redeemShares, uint256 depositableAssets)
     {
         MultiVault vault = MultiVault(address(core.vault()));
         uint256 pendingAssets = 0;
-        {
-            uint256 subvaults = vault.subvaultsCount();
-            uint256[] memory allIndices = new uint256[](subvaults);
-            uint256 iterator = 0;
-            for (uint256 i = 0; i < subvaults; i++) {
-                IMultiVaultStorage.Subvault memory subvault = vault.subvaultAt(i);
-                uint256 claimable = IMultiVaultQueue(subvault.withdrawalQueue).claimableAssetsOf(address(core));
-                if (claimable != 0) {
-                    allIndices[iterator++] = i;
-                    claimableAssets += claimable;
-                }
-                pendingAssets += IMultiVaultQueue(subvault.withdrawalQueue).pendingAssetsOf(address(core));
-            }
-
-            if (iterator != 0) {
-                uint256[] memory indices = new uint256[](iterator);
-                for (uint256 i = 0; i < iterator; i++) {
-                    indices[i] = allIndices[i];
-                }
+        uint256 claimableAssets = 0;
+        if (vault.subvaultsCount() != 0) {
+            require(vault.subvaultsCount() == 1, "TargetHelper: only one subvault supported");
+            address queue = vault.subvaultAt(0).withdrawalQueue;
+            pendingAssets = IMultiVaultQueue(queue).pendingAssetsOf(address(core));
+            claimableAssets = IMultiVaultQueue(queue).claimableAssetsOf(address(core));
+            if (claimableAssets != 0) {
                 claimData = abi.encodeCall(
                     IClaimer.multiAcceptAndClaim,
-                    (address(vault), indices, new uint256[][](iterator), address(core), type(uint256).max)
+                    (address(vault), new uint256[](1), new uint256[][](1), address(core), type(uint256).max)
                 );
             }
         }
@@ -75,7 +63,11 @@ contract TargetHelper {
                 if (vaultLiquidAssets != 0) {
                     pushAssets = Math.min(redeemDemandAssets - pendingAssets, liquidAssets + vaultLiquidAssets);
                 }
+            } else {
+                depositableAssets = liquidAssets > redeemDemandAssets ? liquidAssets - redeemDemandAssets : 0;
             }
+        } else {
+            depositableAssets = core.oft().balanceOf(address(core)) + claimableAssets;
         }
     }
 }
