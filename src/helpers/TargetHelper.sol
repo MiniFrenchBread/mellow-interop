@@ -66,8 +66,24 @@ contract TargetHelper {
             } else {
                 depositableAssets = liquidAssets > redeemDemandAssets ? liquidAssets - redeemDemandAssets : 0;
             }
+            pushAssets = core.oft().removeDust(pushAssets);
         } else {
             depositableAssets = core.oft().balanceOf(address(core)) + claimableAssets;
         }
+    }
+
+    function quotePushToSource(TargetCore core) public view returns (uint256) {
+        return core.oft().quoteSend(
+            SendParam({
+                dstEid: core.sourceEndpointId(),
+                to: core.sourceCoreAddress(),
+                amountLD: 1 ether,
+                minAmountLD: 0,
+                extraOptions: new bytes(0),
+                composeMsg: new bytes(0),
+                oftCmd: new bytes(0)
+            }),
+            false
+        ).nativeFee;
     }
 }

@@ -18,9 +18,24 @@ contract SourceHelper {
         uint256 redeemDemand = core.previewRedeem(core.withdrawalQueue().totalShares());
         uint256 liquidAssets = IERC20(core.asset()).balanceOf(address(core));
         if (liquidAssets < redeemDemand) {
-            pullAssets = redeemDemand - liquidAssets;
+            pullAssets = core.oftAdapter().removeDust(redeemDemand - liquidAssets);
         } else {
-            pushAssets = liquidAssets - redeemDemand;
+            pushAssets = core.oftAdapter().removeDust(liquidAssets - redeemDemand);
         }
+    }
+
+    function quotePushToTarget(SourceCore core) public view returns (uint256) {
+        return core.oftAdapter().quoteSend(
+            SendParam({
+                dstEid: core.targetEndpointId(),
+                to: core.targetCoreAddress(),
+                amountLD: 1 ether,
+                minAmountLD: 0,
+                extraOptions: new bytes(0),
+                composeMsg: new bytes(0),
+                oftCmd: new bytes(0)
+            }),
+            false
+        ).nativeFee;
     }
 }
