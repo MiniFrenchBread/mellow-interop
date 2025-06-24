@@ -14,6 +14,10 @@ contract SourceHelper {
         outboundNonce = endpoint.outboundNonce(address(core), targetEid, targetCore);
     }
 
+    function getSourceValue(SourceCore core) public view returns (uint256) {
+        return IERC20(core.asset()).balanceOf(address(core));
+    }
+
     function getAmounts(SourceCore core) public view returns (uint256 pullAssets, uint256 pushAssets) {
         uint256 redeemDemand = core.previewRedeem(core.withdrawalQueue().totalShares());
         uint256 liquidAssets = IERC20(core.asset()).balanceOf(address(core));
