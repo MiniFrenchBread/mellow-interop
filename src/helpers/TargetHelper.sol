@@ -30,11 +30,12 @@ interface IClaimer {
 
 contract TargetHelper {
     function getNonces(TargetCore core) public view returns (uint256 inboundNonce, uint256 outboundNonce) {
-        ILayerZeroEndpointV2 endpoint = IOAppCore(address(core.oft())).endpoint();
+        address oft = address(core.oft());
+        ILayerZeroEndpointV2 endpoint = IOAppCore(oft).endpoint();
         uint32 sourceEid = core.sourceEndpointId();
-        bytes32 sourceCore = core.sourceCoreAddress();
-        inboundNonce = endpoint.inboundNonce(address(core), sourceEid, sourceCore);
-        outboundNonce = endpoint.outboundNonce(address(core), sourceEid, sourceCore);
+        bytes32 oftAdapter = IOAppCore(oft).peers(sourceEid);
+        inboundNonce = endpoint.inboundNonce(oft, sourceEid, oftAdapter);
+        outboundNonce = endpoint.outboundNonce(oft, sourceEid, oftAdapter);
     }
 
     function getQueuedAssets(IEigenLayerWithdrawalQueue queue, address core) public view returns (uint256 assets) {
@@ -142,17 +143,19 @@ contract TargetHelper {
                     stack.subvaultIndices[stack.iterator++] = i;
                 }
             }
-            uint256[] memory subvaultIndices = stack.subvaultIndices;
-            uint256[][] memory withdrawalIndices = stack.withdrawalIndices;
-            uint256 iterator = stack.iterator;
-            assembly {
-                mstore(subvaultIndices, iterator)
-                mstore(withdrawalIndices, iterator)
+            if (stack.claimableAssets != 0) {
+                uint256[] memory subvaultIndices = stack.subvaultIndices;
+                uint256[][] memory withdrawalIndices = stack.withdrawalIndices;
+                uint256 iterator = stack.iterator;
+                assembly {
+                    mstore(subvaultIndices, iterator)
+                    mstore(withdrawalIndices, iterator)
+                }
+                claimData = abi.encodeCall(
+                    IClaimer.multiAcceptAndClaim,
+                    (address(vault), subvaultIndices, withdrawalIndices, address(core), type(uint256).max)
+                );
             }
-            claimData = abi.encodeCall(
-                IClaimer.multiAcceptAndClaim,
-                (address(vault), subvaultIndices, withdrawalIndices, address(core), type(uint256).max)
-            );
         }
 
         if (redeemDemandAssets > 0) {

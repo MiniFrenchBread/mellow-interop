@@ -7,16 +7,21 @@ import {ILayerZeroEndpointV2, IOAppCore} from "@layerzerolabs/oapp-evm/contracts
 
 contract SourceHelper {
     function getNonces(SourceCore core) public view returns (uint256 inboundNonce, uint256 outboundNonce) {
-        ILayerZeroEndpointV2 endpoint = IOAppCore(address(core.oftAdapter())).endpoint();
+        address oftAdapter = address(core.oftAdapter());
+        ILayerZeroEndpointV2 endpoint = IOAppCore(oftAdapter).endpoint();
         uint32 targetEid = core.targetEndpointId();
-        bytes32 targetCore = core.targetCoreAddress();
-        inboundNonce = endpoint.inboundNonce(address(core), targetEid, targetCore);
-        outboundNonce = endpoint.outboundNonce(address(core), targetEid, targetCore);
+        bytes32 oft = IOAppCore(oftAdapter).peers(targetEid);
+        inboundNonce = endpoint.inboundNonce(oftAdapter, targetEid, oft);
+        outboundNonce = endpoint.outboundNonce(oftAdapter, targetEid, oft);
     }
 
-    function getAmounts(SourceCore core) public view returns (uint256 assets, uint256 withdrawalDemand) {
-        assets = IERC20(core.asset()).balanceOf(address(core));
-        withdrawalDemand = core.previewRedeem(core.withdrawalQueue().totalShares());
+    function getSourceValue(SourceCore core) public view returns (uint256) {
+        return IERC20(core.asset()).balanceOf(address(core));
+    }
+
+    function getWithdrawalData(SourceCore core) public view returns (uint256 withdrawalDemand, uint256 totalSupply) {
+        withdrawalDemand = core.withdrawalQueue().totalShares();
+        totalSupply = core.totalSupply();
     }
 
     function quotePushToTarget(SourceCore core) public view returns (uint256) {
