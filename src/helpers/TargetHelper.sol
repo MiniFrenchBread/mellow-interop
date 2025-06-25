@@ -85,18 +85,16 @@ contract TargetHelper {
 
     function getTargetValue(TargetCore core) public view returns (uint256 assets) {
         IMellowOFT oft = core.oft();
-        assets = oft.balanceOf(address(core));
         IMultiVault vault = IMultiVault(address(core.vault()));
+        assets = oft.balanceOf(address(core))
+            + IERC4626(address(vault)).previewRedeem(IERC4626(address(vault)).balanceOf(address(core)));
         uint256 count = vault.subvaultsCount();
         IMultiVaultStorage.Subvault memory subvault;
         for (uint256 i = 0; i < count; i++) {
             subvault = vault.subvaultAt(i);
-            if (subvault.withdrawalQueue == address(0)) {
-                continue;
-            }
             if (subvault.protocol == IMultiVaultStorage.Protocol.EIGEN_LAYER) {
                 assets += getQueuedAssets(IEigenLayerWithdrawalQueue(subvault.withdrawalQueue), address(core));
-            } else {
+            } else if (subvault.protocol == IMultiVaultStorage.Protocol.SYMBIOTIC) {
                 assets += IMultiVaultQueue(subvault.withdrawalQueue).pendingAssetsOf(address(core));
                 assets += IMultiVaultQueue(subvault.withdrawalQueue).claimableAssetsOf(address(core));
             }

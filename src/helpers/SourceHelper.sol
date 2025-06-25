@@ -14,18 +14,9 @@ contract SourceHelper {
         outboundNonce = endpoint.outboundNonce(address(core), targetEid, targetCore);
     }
 
-    function getSourceValue(SourceCore core) public view returns (uint256) {
-        return IERC20(core.asset()).balanceOf(address(core));
-    }
-
-    function getAmounts(SourceCore core) public view returns (uint256 pullAssets, uint256 pushAssets) {
-        uint256 redeemDemand = core.previewRedeem(core.withdrawalQueue().totalShares());
-        uint256 liquidAssets = IERC20(core.asset()).balanceOf(address(core));
-        if (liquidAssets < redeemDemand) {
-            pullAssets = core.oftAdapter().removeDust(redeemDemand - liquidAssets);
-        } else {
-            pushAssets = core.oftAdapter().removeDust(liquidAssets - redeemDemand);
-        }
+    function getAmounts(SourceCore core) public view returns (uint256 assets, uint256 withdrawalDemand) {
+        assets = IERC20(core.asset()).balanceOf(address(core));
+        withdrawalDemand = core.previewRedeem(core.withdrawalQueue().totalShares());
     }
 
     function quotePushToTarget(SourceCore core) public view returns (uint256) {
