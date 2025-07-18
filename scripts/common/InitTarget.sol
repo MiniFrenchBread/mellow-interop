@@ -40,71 +40,28 @@ library InitTarget {
                 pushRoleHolder: $.curatorOperator
             })
         );
-
-        EnforcedOptionParam[] memory enforcedOptions = new EnforcedOptionParam[](1);
-        enforcedOptions[0] = EnforcedOptionParam({
-            eid: $.sourceEid,
-            msgType: $.mellowOFT.SEND(),
-            options: OptionsBuilder.newOptions().addExecutorLzReceiveOption(Constants.sendGas(), 0)
-        });
-        $.mellowOFT.setEnforcedOptions(enforcedOptions);
-        $.mellowOFT.setPeer($.sourceEid, addressToBytes32(address($.mellowOFTAdapter)));
-
-        SetConfigParam[] memory params = new SetConfigParam[](1);
-        UlnConfig memory config;
-        config.confirmations = 20;
-        params[0] = SetConfigParam({eid: $.sourceEid, configType: 2, config: abi.encode(config)});
-        ILayerZeroEndpointV2 endpoint = ILayerZeroEndpointV2($.mellowOFT.endpoint());
-        endpoint.setConfig(address($.mellowOFT), Constants.sendLibrary(), params);
-        endpoint.setConfig(address($.mellowOFT), Constants.receiveLibrary(), params);
-        $.mellowOFT.transferOwnership(address($.vaultAdmin));
-    }
-
-    function init(
-        TargetCore targetCore,
-        uint32 sourceEid,
-        address sourceCoreAddress,
-        MellowOFT mellowOFT,
-        address mellowOFTAdapter,
-        address deployer,
-        address admin,
-        address operator,
-        address vault,
-        address claimer
-    ) internal {
-        targetCore.initialize(
-            ITargetCoreStorage.InitParams({
-                admin: admin,
-                vault: vault,
-                claimer: claimer,
-                sourceEndpointId: sourceEid,
-                sourceCoreAddress: addressToBytes32(sourceCoreAddress),
-                depositRoleHolder: operator,
-                redeemRoleHolder: operator,
-                claimRoleHolder: operator,
-                pushRoleHolder: operator
-            })
-        );
-
-        EnforcedOptionParam[] memory enforcedOptions = new EnforcedOptionParam[](1);
-        enforcedOptions[0] = EnforcedOptionParam({
-            eid: sourceEid,
-            msgType: mellowOFT.SEND(),
-            options: OptionsBuilder.newOptions().addExecutorLzReceiveOption(Constants.sendGas(), 0)
-        });
-        mellowOFT.setEnforcedOptions(enforcedOptions);
-        mellowOFT.setPeer(sourceEid, addressToBytes32(address(mellowOFTAdapter)));
-
-        SetConfigParam[] memory params = new SetConfigParam[](1);
-        UlnConfig memory config;
-        config.confirmations = 20;
-        params[0] = SetConfigParam({eid: sourceEid, configType: 2, config: abi.encode(config)});
-        ILayerZeroEndpointV2 endpoint = ILayerZeroEndpointV2(mellowOFT.endpoint());
-        endpoint.setConfig(address(mellowOFT), Constants.sendLibrary(), params);
-        endpoint.setConfig(address(mellowOFT), Constants.receiveLibrary(), params);
-
-        if (deployer != admin) {
-            mellowOFT.transferOwnership(address(admin));
+        {
+            EnforcedOptionParam[] memory enforcedOptions = new EnforcedOptionParam[](1);
+            enforcedOptions[0] = EnforcedOptionParam({
+                eid: $.sourceEid,
+                msgType: $.mellowOFT.SEND(),
+                options: OptionsBuilder.newOptions().addExecutorLzReceiveOption(Constants.sendGas(), 0)
+            });
+            $.mellowOFT.setEnforcedOptions(enforcedOptions);
         }
+        $.mellowOFT.setPeer($.sourceEid, addressToBytes32(address($.mellowOFTAdapter)));
+        {
+            SetConfigParam[] memory params = new SetConfigParam[](1);
+            UlnConfig memory config;
+            config.confirmations = 20;
+            config.requiredDVNs = Constants.requiredDVNs($.sourceEid);
+            config.requiredDVNCount = uint8(config.requiredDVNs.length);
+            params[0] = SetConfigParam({eid: $.sourceEid, configType: 2, config: abi.encode(config)});
+            ILayerZeroEndpointV2 endpoint = ILayerZeroEndpointV2($.mellowOFT.endpoint());
+            endpoint.setConfig(address($.mellowOFT), Constants.sendLibrary(), params);
+            endpoint.setConfig(address($.mellowOFT), Constants.receiveLibrary(), params);
+        }
+        $.mellowOFT.setDelegate($.vaultAdmin);
+        $.mellowOFT.transferOwnership($.vaultAdmin);
     }
 }
