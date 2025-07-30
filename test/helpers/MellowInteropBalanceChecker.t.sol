@@ -98,15 +98,8 @@ contract MellowInteropBalanceCheckerTest is Test {
 
     function _deploySourceCore() internal returns (SourceCore) {
         address singleton = address(new SourceCore());
-        SourceCore _sourceCore = SourceCore(
-            address(
-                new TransparentUpgradeableProxy(
-                    singleton,
-                    proxyAdmin,
-                    new bytes(0)
-                )
-            )
-        );
+        SourceCore _sourceCore =
+            SourceCore(address(new TransparentUpgradeableProxy(singleton, proxyAdmin, new bytes(0))));
         MellowOFTAdapter mellowOFTAdapter = new MellowOFTAdapter(Constants.wsteth(), Constants.endpointV2(), admin);
         _sourceCore.initialize(
             ISourceCoreStorage.InitParams({

@@ -6,13 +6,16 @@ interface IBalanceChecker {
     /// @param token The address of the token
     /// @param addresses The addresses to get the balance of
     /// @return result The balances of the tokens for the addresses
-    function tokenBalances(address token, address[] memory addresses) external view returns (uint256[] memory result);
+    function tokenBalances(address token, address[] calldata addresses)
+        external
+        view
+        returns (uint256[] memory result);
 
     /// @notice Get the balances for multiple addresses across multiple tokens
     /// @param sources The addresses of the tokens
     /// @param addresses The addresses to get the balance of
     /// @return result The balances of the tokens for the addresses
-    function batchTokenBalances(address[] memory sources, address[] memory addresses)
+    function batchTokenBalances(address[] calldata sources, address[] calldata addresses)
         external
         view
         returns (uint256[] memory result);
