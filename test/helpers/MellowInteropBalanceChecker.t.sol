@@ -42,10 +42,8 @@ contract MellowInteropBalanceCheckerTest is Test {
         _deposit(userA, 0.5 ether);
         _deposit(userB, 1 ether);
 
-        address[] memory sources = new address[](3);
+        address[] memory sources = new address[](1);
         sources[0] = address(sourceCore);
-        sources[1] = address(sourceCore); // Ignored
-        sources[2] = address(0); // Ignored
 
         address[] memory addresses = new address[](3);
         addresses[0] = userA;
@@ -58,11 +56,43 @@ contract MellowInteropBalanceCheckerTest is Test {
         assertEq(balances[2], 0);
     }
 
+    function testBatchTokenBalances_MultipleSources() public {
+        SourceCore sourceCore2 = _deploySourceCore();
+
+        address userA = vm.createWallet("userA").addr;
+        address userB = vm.createWallet("userB").addr;
+        address userC = vm.createWallet("userC").addr; // Won't deposit anything
+
+        _deposit(userA, 0.5 ether);
+        _deposit(userB, 1 ether);
+
+        _depositTo(address(sourceCore2), userA, 0.5 ether);
+        _depositTo(address(sourceCore2), userB, 1 ether);
+
+        address[] memory sources = new address[](2);
+        sources[0] = address(sourceCore);
+        sources[1] = address(sourceCore2);
+
+        address[] memory addresses = new address[](3);
+        addresses[0] = userA;
+        addresses[1] = userB;
+        addresses[2] = userC;
+
+        uint256[] memory balances = mellowInteropBalanceChecker.batchTokenBalances(sources, addresses);
+        assertEq(balances[0], 1 ether);
+        assertEq(balances[1], 2 ether);
+        assertEq(balances[2], 0);
+    }
+
     function _deposit(address user, uint256 amount) internal {
+        _depositTo(address(sourceCore), user, amount);
+    }
+
+    function _depositTo(address source, address user, uint256 amount) internal {
         vm.startPrank(user);
         deal(Constants.wsteth(), user, amount);
-        IERC20(Constants.wsteth()).approve(address(sourceCore), amount);
-        sourceCore.deposit(amount, user);
+        IERC20(Constants.wsteth()).approve(source, amount);
+        SourceCore(source).deposit(amount, user);
         vm.stopPrank();
     }
 

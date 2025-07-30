@@ -28,7 +28,13 @@ contract MellowInteropBalanceChecker is IBalanceChecker {
         view
         returns (uint256[] memory result)
     {
-        result = this.tokenBalances(sources[0], addresses);
+        result = new uint256[](addresses.length);
+        for (uint256 i = 0; i < sources.length; i++) {
+            uint256[] memory balances = this.tokenBalances(sources[i], addresses);
+            for (uint256 j = 0; j < addresses.length; j++) {
+                result[j] += balances[j];
+            }
+        }
     }
 
     /// @notice Normalize the balance to 18 decimals
