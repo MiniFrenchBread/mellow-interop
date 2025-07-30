@@ -1,7 +1,6 @@
 // SPDX-License-Identifier: BUSL-1.1
 pragma solidity 0.8.25;
 
-import {IERC20Metadata} from "@openzeppelin/contracts/token/ERC20/extensions/IERC20Metadata.sol";
 import {Math} from "@openzeppelin/contracts/utils/math/Math.sol";
 
 import "../interfaces/core/ISourceCore.sol";
@@ -15,8 +14,7 @@ contract MellowInteropBalanceChecker is IBalanceChecker {
         ISourceCore sourceCore = ISourceCore(token);
         token = sourceCore.asset();
         result = new uint256[](addresses.length);
-
-        uint256 decimals = IERC20Metadata(token).decimals();
+        uint256 decimals = sourceCore.decimals();
         uint256 totalSupply = sourceCore.totalSupply();
         uint256 totalAssets = Math.mulDiv(totalSupply, sourceCore.oracle().value(), sourceCore.D18());
         for (uint256 i = 0; i < addresses.length; i++) {
