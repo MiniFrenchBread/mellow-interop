@@ -38,5 +38,7 @@ import "../src/utils/Delegator.sol";
 import "../src/utils/Oracle.sol";
 import "../src/utils/WithdrawalQueue.sol";
 
+import "../src/helpers/MellowInteropBalanceChecker.sol";
+
 import "./MockClaimer.sol";
 import "./MockVault.sol";
