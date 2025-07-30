@@ -1,6 +1,6 @@
 # Interoperable Vaults
 
-Interoperable Vaults facilitate cross‐chain restaking, allowing users to deposit assets on EVM networks and receive vault shares, which are then restaked on Ethereal mainnet. LayerZero’s OFT (Omnichain Fungible Token) is used for cross-chain messaging, with custom modifications to enable seamless deposit and withdrawal flows on L1&2s.
+Interoperable Vaults facilitate cross‐chain restaking, allowing users to deposit assets on EVM networks and receive vault shares, which are then restaked on Ethereum mainnet. LayerZero’s OFT (Omnichain Fungible Token) is used for cross-chain messaging, with custom modifications to enable seamless deposit and withdrawal flows on L1&2s.
 
 ## Fraxtal
 
