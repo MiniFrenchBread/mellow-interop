@@ -4,7 +4,6 @@ pragma solidity 0.8.25;
 import {Math} from "@openzeppelin/contracts/utils/math/Math.sol";
 
 import "../interfaces/core/ISourceCore.sol";
-import "../interfaces/core/ITargetCore.sol";
 import "../interfaces/helpers/IBalanceChecker.sol";
 
 contract MellowInteropBalanceChecker is IBalanceChecker {
@@ -12,7 +11,6 @@ contract MellowInteropBalanceChecker is IBalanceChecker {
     /// @dev `token` is the address of the source core (ERC4626 vault), not the token itself.
     function tokenBalances(address token, address[] calldata addresses) external view returns (uint256[] memory result) {
         ISourceCore sourceCore = ISourceCore(token);
-        token = sourceCore.asset();
         result = new uint256[](addresses.length);
         uint256 decimals = sourceCore.decimals();
         uint256 totalSupply = sourceCore.totalSupply();
