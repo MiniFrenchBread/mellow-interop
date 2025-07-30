@@ -9,7 +9,11 @@ import "../interfaces/helpers/IBalanceChecker.sol";
 contract MellowInteropBalanceChecker is IBalanceChecker {
     /// @inheritdoc IBalanceChecker
     /// @dev `token` is the address of the source core (ERC4626 vault), not the token itself.
-    function tokenBalances(address token, address[] calldata addresses) external view returns (uint256[] memory result) {
+    function tokenBalances(address token, address[] calldata addresses)
+        external
+        view
+        returns (uint256[] memory result)
+    {
         ISourceCore sourceCore = ISourceCore(token);
         result = new uint256[](addresses.length);
         uint256 decimals = sourceCore.decimals();
@@ -17,11 +21,7 @@ contract MellowInteropBalanceChecker is IBalanceChecker {
         uint256 totalAssets = Math.mulDiv(totalSupply, sourceCore.oracle().value(), sourceCore.D18());
         for (uint256 i = 0; i < addresses.length; i++) {
             uint256 shares = sourceCore.balanceOf(addresses[i]);
-            uint256 underlyingBalance = Math.mulDiv(
-                shares,
-                totalAssets + 1,
-                totalSupply + 1
-            );
+            uint256 underlyingBalance = Math.mulDiv(shares, totalAssets + 1, totalSupply + 1);
             result[i] = _normalizeDecimals(decimals, underlyingBalance);
         }
     }
