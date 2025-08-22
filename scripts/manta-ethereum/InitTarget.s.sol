@@ -13,7 +13,7 @@ contract Deploy is Script {
         [manta] MellowOFTAdapter MANTA 0x9D9645c761151fA4B390A0e79f63Ba356fF1870a
         [ethereum] TargetCore MANTA 0x48E69cB6c6F05e194589BE37408c5717E7cCE1C7
         [ethereum] MellowOFT MANTA 0xF3A1C44d1825Fb49d633F681Cb2B4e7dE2e071D4
-        [ethereum] MultiVault MANTA address(0)
+        [ethereum] MultiVault MANTA 0xe88CF95e44a2FF048315b8b3858E59bB11b8a602
     */
 
     address claimer = 0x25024a3017B8da7161d8c5DCcF768F8678fB5802;
@@ -29,7 +29,7 @@ contract Deploy is Script {
             TargetCore targetCore = TargetCore(0x48E69cB6c6F05e194589BE37408c5717E7cCE1C7);
             MellowOFTAdapter mellowOFTAdapter = MellowOFTAdapter(0x9D9645c761151fA4B390A0e79f63Ba356fF1870a);
             MellowOFT mellowOFT = MellowOFT(0xF3A1C44d1825Fb49d633F681Cb2B4e7dE2e071D4);
-            address vault = address(0);
+            address vault = 0xe88CF95e44a2FF048315b8b3858E59bB11b8a602;
             InitTarget.init(
                 InitTarget.InitParams({
                     targetCore: targetCore,
