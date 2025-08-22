@@ -32,6 +32,7 @@ library Constants {
     uint256 public constant FRAX_CHAINID = 252;
     uint256 public constant BSC_TESTNET_CHAINID = 97;
     uint256 public constant BSC_CHAINID = 56;
+    uint256 public constant MANTA_CHAINID = 169;
 
     function endpointId(uint256 chainId) internal pure returns (uint32) {
         if (chainId == HOLESKY_CHAINID) {
@@ -52,6 +53,8 @@ library Constants {
             return 40102;
         } else if (chainId == BSC_CHAINID) {
             return 30102;
+        } else if (chainId == MANTA_CHAINID) {
+            return 30217;
         }
         revert("Unsupported chain");
     }
@@ -78,6 +81,8 @@ library Constants {
         } else if (chainId == BSC_TESTNET_CHAINID) {
             return 0x6EDCE65403992e310A62460808c4b910D972f10f;
         } else if (chainId == BSC_CHAINID) {
+            return 0x1a44076050125825900e736c501f859c50fE728c;
+        } else if (chainId == MANTA_CHAINID) {
             return 0x1a44076050125825900e736c501f859c50fE728c;
         }
         revert("Unsupported chain");
@@ -106,6 +111,8 @@ library Constants {
             return 0x55f16c442907e86D764AFdc2a07C2de3BdAc8BB7;
         } else if (chainId == BSC_CHAINID) {
             return 0x9F8C645f2D0b2159767Bd6E0839DE4BE49e823DE;
+        } else if (chainId == MANTA_CHAINID) {
+            return 0xD1654C656455E40E2905E96b6B91088AC2B362a2;
         }
         revert("Unsupported chain");
     }
@@ -133,6 +140,8 @@ library Constants {
             return 0x188d4bbCeD671A7aA2b5055937F79510A32e9683;
         } else if (chainId == BSC_CHAINID) {
             return 0xB217266c3A98C8B2709Ee26836C98cf12f6cCEC1;
+        } else if (chainId == MANTA_CHAINID) {
+            return 0xC1EC25A9e8a8DE5Aa346f635B33e5B74c4c081aF;
         }
         revert("Unsupported chain");
     }
@@ -195,8 +204,30 @@ library Constants {
                 dvns[1] = 0x7a23612F07d81F16B26cF0b5a4C3eca0E8668df2; // BWare
                 return dvns;
             }
+        } else if (sourceEndpointId == endpointId(MANTA_CHAINID)) {
+            if (block.chainid == MANTA_CHAINID) {
+                address[] memory dvns = new address[](2);
+                dvns[0] = 0xA09dB5142654e3eB5Cf547D66833FAe7097B21C3; // LayerZero labs
+                dvns[1] = 0xabC9b1819cc4D9846550F928B985993cF6240439; // BWare
+                return dvns;
+            } else if (block.chainid == ETHEREUM_CHAINID) {
+                address[] memory dvns = new address[](2);
+                dvns[0] = 0x589dEDbD617e0CBcB916A9223F4d1300c294236b; // LayerZero labs
+                dvns[1] = 0x7a23612F07d81F16B26cF0b5a4C3eca0E8668df2; // BWare
+                return dvns;
+            }
         }
         revert("Unsupported chain");
+    }
+    function manta(uint256 chainId) internal pure returns (address) {
+        if (chainId == MANTA_CHAINID) {
+            return 0x95CeF13441Be50d20cA4558CC0a27B601aC544E5;
+        }
+        revert("Unsupported chain");
+    }
+
+    function manta() internal view returns (address) {
+        return manta(block.chainid);
     }
 
     function cyc(uint256 chainId) internal pure returns (address) {
@@ -305,6 +336,26 @@ library Constants {
         return 0x5DD19228DC1b6EEaFF0BC649e25f83cc957B92Ed;
     }
 
+    function MANTA_MAINNET_VAULT_ADMIN() internal pure returns (address) {
+        return 0x0e5c716aA17106E6f6B74b2c0E1A015B643CE308;
+    }
+
+    function MANTA_MAINNET_VAULT_PROXY_ADMIN() internal pure returns (address) {
+        return 0xD4aFEe5cCe62128F3ACb67202e7Ae85fD3888f2A;
+    }
+
+    function MANTA_ORACLE_UPDATER() internal pure returns (address) {
+        return 0x9C807F6f6D785e31f4AF84722cd5097AB5A87d78;
+    }
+
+    function MANTA_MAINNET_CURATOR() internal pure returns (address) {
+        return 0xBEE16D4331B0AD6aa60E07bA55427b56E0f578fb;
+    }
+
+    function MANTA_CURATOR_OPERATOR() internal pure returns (address) {
+        return 0xBEE16D4331B0AD6aa60E07bA55427b56E0f578fb;
+    }
+    
     function BSC_TESTNET_VAULT_ADMIN() internal pure returns (address) {
         return 0x27051Af764F55A4A8E6E3Eb1507c43E116B5826c;
     }
