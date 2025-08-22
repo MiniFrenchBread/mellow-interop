@@ -207,13 +207,13 @@ library Constants {
         } else if (sourceEndpointId == endpointId(MANTA_CHAINID)) {
             if (block.chainid == MANTA_CHAINID) {
                 address[] memory dvns = new address[](2);
-                dvns[0] = 0xA09dB5142654e3eB5Cf547D66833FAe7097B21C3; // LayerZero labs
-                dvns[1] = 0x31F748a368a893Bdb5aBB67ec95F232507601A73; // Horizen
+                dvns[0] = 0x31F748a368a893Bdb5aBB67ec95F232507601A73; // Horizen
+                dvns[1] = 0xA09dB5142654e3eB5Cf547D66833FAe7097B21C3; // LayerZero labs
                 return dvns;
             } else if (block.chainid == ETHEREUM_CHAINID) {
                 address[] memory dvns = new address[](2);
-                dvns[0] = 0x589dEDbD617e0CBcB916A9223F4d1300c294236b; // LayerZero labs
-                dvns[1] = 0x380275805876ff19055ea900cdb2b46a94ecf20d; // Horizen
+                dvns[0] = 0x380275805876ff19055ea900cdb2b46a94ecf20d; // Horizen
+                dvns[1] = 0x589dEDbD617e0CBcB916A9223F4d1300c294236b; // LayerZero labs
                 return dvns;
             }
         }
