@@ -208,7 +208,7 @@ library Constants {
             if (block.chainid == MANTA_CHAINID) {
                 address[] memory dvns = new address[](2);
                 dvns[0] = 0xA09dB5142654e3eB5Cf547D66833FAe7097B21C3; // LayerZero labs
-                dvns[1] = 0xabC9b1819cc4D9846550F928B985993cF6240439; // BWare
+                dvns[1] = 0x31F748a368a893Bdb5aBB67ec95F232507601A73; // Horizen
                 return dvns;
             } else if (block.chainid == ETHEREUM_CHAINID) {
                 address[] memory dvns = new address[](2);
@@ -219,6 +219,7 @@ library Constants {
         }
         revert("Unsupported chain");
     }
+
     function manta(uint256 chainId) internal pure returns (address) {
         if (chainId == MANTA_CHAINID) {
             return 0x95CeF13441Be50d20cA4558CC0a27B601aC544E5;
@@ -336,26 +337,42 @@ library Constants {
         return 0x5DD19228DC1b6EEaFF0BC649e25f83cc957B92Ed;
     }
 
-    function MANTA_MAINNET_VAULT_ADMIN() internal pure returns (address) {
+    function MANTA_TARGET_VAULT_ADMIN() internal pure returns (address) {
         return 0x0e5c716aA17106E6f6B74b2c0E1A015B643CE308;
     }
 
-    function MANTA_MAINNET_VAULT_PROXY_ADMIN() internal pure returns (address) {
+    function MANTA_TARGET_VAULT_PROXY_ADMIN() internal pure returns (address) {
         return 0xD4aFEe5cCe62128F3ACb67202e7Ae85fD3888f2A;
     }
 
-    function MANTA_ORACLE_UPDATER() internal pure returns (address) {
+    function MANTA_TARGET_CURATOR() internal pure returns (address) {
+        return 0xBEE16D4331B0AD6aa60E07bA55427b56E0f578fb;
+    }
+
+    function MANTA_TARGET_CURATOR_OPERATOR() internal pure returns (address) {
+        return 0xf47aE7d4bb095B0aafF59f3849346d39F770C8E3;
+    }
+
+    function MANTA_SOURCE_VAULT_ADMIN() internal pure returns (address) {
+        return 0xdfCD6a517c86EdE52EF9C7f34ad9E918943ECe67;
+    }
+
+    function MANTA_SOURCE_VAULT_PROXY_ADMIN() internal pure returns (address) {
+        return 0x30a7C7726dBA087C9af3547BDe7b2953DFdf06bB;
+    }
+
+    function MANTA_SOURCE_CURATOR() internal pure returns (address) {
+        return 0x175427A2BDa468293eC2F5beE81060C1bd5D586e;
+    }
+
+    function MANTA_SOURCE_CURATOR_OPERATOR() internal pure returns (address) {
+        return 0xf47aE7d4bb095B0aafF59f3849346d39F770C8E3;
+    }
+
+    function MANTA_SOURCE_ORACLE_UPDATER() internal pure returns (address) {
         return 0x9C807F6f6D785e31f4AF84722cd5097AB5A87d78;
     }
 
-    function MANTA_MAINNET_CURATOR() internal pure returns (address) {
-        return 0xBEE16D4331B0AD6aa60E07bA55427b56E0f578fb;
-    }
-
-    function MANTA_CURATOR_OPERATOR() internal pure returns (address) {
-        return 0xBEE16D4331B0AD6aa60E07bA55427b56E0f578fb;
-    }
-    
     function BSC_TESTNET_VAULT_ADMIN() internal pure returns (address) {
         return 0x27051Af764F55A4A8E6E3Eb1507c43E116B5826c;
     }

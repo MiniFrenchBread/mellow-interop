@@ -18,6 +18,6 @@ contract Deploy is Script {
         SourceHelper sourceHelper = new SourceHelper();
 
         vm.stopBroadcast();
-         revert("ok");
+        revert("ok");
     }
 }

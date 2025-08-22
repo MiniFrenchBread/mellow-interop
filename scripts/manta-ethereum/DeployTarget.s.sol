@@ -11,11 +11,10 @@ contract Deploy is Script {
         address deployer = vm.addr(deployerPk);
 
         vm.startBroadcast(deployerPk);
-        TargetCore targetCoreImpl = new TargetCore();
 
-        (TransparentUpgradeableProxy targetCore, MellowOFT mellowOFT) = DeployTarget.deploy(
-            targetCoreImpl, 
-            Constants.MANTA_MAINNET_VAULT_PROXY_ADMIN(),
+        (TargetCore targetCoreSingleton, TransparentUpgradeableProxy targetCore, MellowOFT mellowOFT) = DeployTarget
+            .deploy(
+            Constants.MANTA_TARGET_VAULT_PROXY_ADMIN(),
             deployer,
             bytes32(0),
             "Manta Restaking Vault OFT",
@@ -24,10 +23,11 @@ contract Deploy is Script {
 
         vm.stopBroadcast();
 
-        console2.log("TargetCore Implementation %s;", address(targetCoreImpl));
-        console2.log("TargetCore MANTA %s;", address(targetCore));
-        console2.log("MellowOFT MANTA %s.", address(mellowOFT));
+        console2.log("TargetCore Implementation %s", address(targetCoreSingleton));
+        console2.log("TargetCore MANTA          %s", address(targetCore));
+        console2.log("MellowOFT MANTA           %s", address(mellowOFT));
+        console2.log("Vault Proxy admin MANTA   %s", Constants.MANTA_TARGET_VAULT_PROXY_ADMIN());
 
-         revert("ok");
+        revert("ok");
     }
 }

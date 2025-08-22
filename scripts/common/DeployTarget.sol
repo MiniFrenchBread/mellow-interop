@@ -7,22 +7,22 @@ import "../Constants.sol";
 library DeployTarget {
     function deploy(address proxyAdmin, address deployer, bytes32 salt, string memory name, string memory symbol)
         internal
-        returns (TargetCore targetCoreSigleton, TransparentUpgradeableProxy targetCore, MellowOFT mellowOFT)
+        returns (TargetCore targetCoreSingleton, TransparentUpgradeableProxy targetCore, MellowOFT mellowOFT)
     {
-        targetCoreSigleton = new TargetCore();
-        targetCore = new TransparentUpgradeableProxy{salt: salt}(address(targetCoreSigleton), proxyAdmin, "");
+        targetCoreSingleton = new TargetCore();
+        targetCore = new TransparentUpgradeableProxy{salt: salt}(address(targetCoreSingleton), proxyAdmin, "");
         mellowOFT = new MellowOFT{salt: salt}(name, symbol, Constants.endpointV2(), deployer);
     }
 
     function deploy(
-        TargetCore targetCoreSigleton,
+        TargetCore targetCoreSingleton,
         address proxyAdmin,
         address deployer,
         bytes32 salt,
         string memory name,
         string memory symbol
     ) internal returns (TransparentUpgradeableProxy targetCore, MellowOFT mellowOFT) {
-        targetCore = new TransparentUpgradeableProxy{salt: salt}(address(targetCoreSigleton), proxyAdmin, "");
+        targetCore = new TransparentUpgradeableProxy{salt: salt}(address(targetCoreSingleton), proxyAdmin, "");
         mellowOFT = new MellowOFT{salt: salt}(name, symbol, Constants.endpointV2(), deployer);
     }
 }
