@@ -5,8 +5,9 @@ pragma solidity 0.8.25;
 import "../Constants.sol";
 import "forge-std/Script.sol";
 
-import "../../src/helpers/Collector.sol";
-import "../../src/helpers/SourceHelper.sol";
+interface IWETH {
+    function deposit() external payable;
+}
 
 contract Deploy is Script {
     function run() external {
@@ -14,12 +15,12 @@ contract Deploy is Script {
         address deployer = vm.addr(deployerPk);
         vm.startBroadcast(deployerPk);
 
-        Collector collector = new Collector();
-        SourceHelper sourceHelper = new SourceHelper();
-
+        SourceCore core = SourceCore(0x9cD45b6E33433ED50738F508aD378b567603f61F);
+        address asset = core.asset();
+        uint256 amount = IERC20(asset).balanceOf(deployer);
+        IERC20(asset).approve(address(core), amount);
+        core.deposit(amount, deployer);
         vm.stopBroadcast();
-        console2.log("Collector    %s", address(collector));
-        console2.log("SourceHelper %s", address(sourceHelper));
         revert("ok");
     }
 }

@@ -212,7 +212,7 @@ library Constants {
                 return dvns;
             } else if (block.chainid == ETHEREUM_CHAINID) {
                 address[] memory dvns = new address[](2);
-                dvns[0] = 0x380275805876ff19055ea900cdb2b46a94ecf20d; // Horizen
+                dvns[0] = 0x380275805876Ff19055EA900CDb2B46a94ecF20D; // Horizen
                 dvns[1] = 0x589dEDbD617e0CBcB916A9223F4d1300c294236b; // LayerZero labs
                 return dvns;
             }
