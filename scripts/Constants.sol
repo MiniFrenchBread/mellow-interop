@@ -281,6 +281,13 @@ library Constants {
         return wsteth(block.chainid);
     }
 
+    function solv() internal view returns (address) {
+        if (block.chainid == BSC_CHAINID) {
+            return 0xabE8E5CabE24Cb36df9540088fD7cE1175b9bc52;
+        }
+        revert("Unsupported chain");
+    }
+
     function LISK_ADMIN() internal pure returns (address) {
         return 0xa62243c7a36e74d8280781242a3B0e019ce74E64;
     }
@@ -403,6 +410,22 @@ library Constants {
 
     function CYCLE_MAINNET_VAULT_PROXY_ADMIN() internal pure returns (address) {
         return 0x0CF4a2Db7734aABffD15b34fbe8A760B4EEEB9F4;
+    }
+
+    function SOLV_MAINNET_CURATOR_OPERATOR() internal pure returns (address) {
+        return 0x0c2Bc4d2698820e12E6eBe863E7b9E2650CD5b7D; // curator operator bsc+mainnet
+    }
+
+    function SOLV_MAINNET_CURATOR() internal pure returns (address) {
+        return 0x0c2Bc4d2698820e12E6eBe863E7b9E2650CD5b7D; // curator admin bsc+mainnet
+    }
+
+    function SOLV_MAINNET_VAULT_ADMIN() internal pure returns (address) {
+        return 0x258Ea2008C1aae005F75F1D43D4dC51d5c6c46F0; // both bsc+mainnet
+    }
+
+    function SOLV_MAINNET_VAULT_PROXY_ADMIN() internal pure returns (address) {
+        return 0x7377344FCD33844541cb6966ffa7FcAB05641183; // both bsc+mainnet
     }
 
     function sendGas() internal pure returns (uint128) {
