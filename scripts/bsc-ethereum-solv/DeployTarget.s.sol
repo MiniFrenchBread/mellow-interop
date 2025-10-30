@@ -12,10 +12,10 @@ contract Deploy is Script {
 
         vm.startBroadcast(deployerPk);
         (TransparentUpgradeableProxy targetCore, MellowOFT mellowOFT) = DeployTarget.deploy(
-            TargetCore(0xC26C59540Fe0FFc25FE97fB09a995B4D07E0Dfb2),
+            TargetCore(0x1bfbF13aF629eB2bC829393D10f5f4a2B84EFF70),
             Constants.SOLV_MAINNET_VAULT_PROXY_ADMIN(),
             deployer,
-            bytes32(0),
+            bytes32(uint256(0x1)),
             "SOLV Vault OFT",
             "SOLV OFT"
         );
@@ -25,6 +25,6 @@ contract Deploy is Script {
         console2.log("TargetCore SOLV %s;", address(targetCore));
         console2.log("MellowOFT SOLV %s.", address(mellowOFT));
 
-        revert("ok");
+        //revert("ok");
     }
 }

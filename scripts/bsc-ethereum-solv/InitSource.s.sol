@@ -9,8 +9,8 @@ contract Deploy is Script {
     /*
         [bsc] SourceCore SOLV 0x7C942105Be8Be5B3cbB7309120b0C0C16ee3e536;
         [bsc] MellowOFTAdapter SOLV 0xAEa7F7bF3A3b40e625b160e21473dAC1D6089DD9.
-        [ethereum] TargetCore SOLV 0xf1390f694f34bFE1aa651e8a0313fDc485A39132;
-        [ethereum] MellowOFT SOLV 0xb79956D87D887Ba850efaFdefe387458f463750c.
+        [ethereum] TargetCore SOLV 0x927F0604c60924399EB44f54C4c333Ed1Ef21B45;
+        [ethereum] MellowOFT SOLV 0x080cCaa313B0e0Bac744C090B5894d75d853518D.
     */
 
     uint256 public constant EPOCH_DURATION = 1 days;
@@ -24,10 +24,10 @@ contract Deploy is Script {
         vm.startBroadcast(deployerPk);
         {
             SourceCore sourceCore = SourceCore(0x7C942105Be8Be5B3cbB7309120b0C0C16ee3e536);
-            address targetCoreAddress = 0xf1390f694f34bFE1aa651e8a0313fDc485A39132;
+            address targetCoreAddress = 0x927F0604c60924399EB44f54C4c333Ed1Ef21B45;
             uint32 targetEid = Constants.endpointId(Constants.ETHEREUM_CHAINID);
             MellowOFTAdapter mellowOFTAdapter = MellowOFTAdapter(0xAEa7F7bF3A3b40e625b160e21473dAC1D6089DD9);
-            MellowOFT mellowOFT = MellowOFT(0xb79956D87D887Ba850efaFdefe387458f463750c);
+            MellowOFT mellowOFT = MellowOFT(0x080cCaa313B0e0Bac744C090B5894d75d853518D);
 
             InitSource.init(
                 InitSource.InitParams({
@@ -52,6 +52,6 @@ contract Deploy is Script {
             );
         }
         vm.stopBroadcast();
-        revert("ok");
+        // revert("ok");
     }
 }
