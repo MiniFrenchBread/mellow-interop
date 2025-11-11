@@ -16,7 +16,7 @@ contract Deploy is Script {
             Constants.solv(),
             Constants.SOLV_MAINNET_VAULT_PROXY_ADMIN(),
             deployer,
-            bytes32(0x01)
+            bytes32(uint256(0x1))
         );
         vm.stopBroadcast();
 
