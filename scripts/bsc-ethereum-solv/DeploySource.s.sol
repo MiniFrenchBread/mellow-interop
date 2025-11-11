@@ -11,11 +11,15 @@ contract Deploy is Script {
         address deployer = vm.addr(deployerPk);
 
         vm.startBroadcast(deployerPk);
-        (SourceCore sourceCoreImplementation, TransparentUpgradeableProxy sourceCore, MellowOFTAdapter mellowOFTAdapter)
-        = DeploySource.deploy(Constants.solv(), Constants.SOLV_MAINNET_VAULT_PROXY_ADMIN(), deployer, bytes32(0));
+        (TransparentUpgradeableProxy sourceCore, MellowOFTAdapter mellowOFTAdapter) = DeploySource.deploy(
+            SourceCore(0x2F83162511A07769fd3F981D02Ae5b3138Ff72cE),
+            Constants.solv(),
+            Constants.SOLV_MAINNET_VAULT_PROXY_ADMIN(),
+            deployer,
+            bytes32(0x01)
+        );
         vm.stopBroadcast();
 
-        console2.log("SourceCore implementation %s;", address(sourceCoreImplementation));
         console2.log("SourceCore SOLV %s;", address(sourceCore));
         console2.log("MellowOFTAdapter SOLV %s.", address(mellowOFTAdapter));
 

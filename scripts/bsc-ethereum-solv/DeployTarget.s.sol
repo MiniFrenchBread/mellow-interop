@@ -15,7 +15,7 @@ contract Deploy is Script {
             TargetCore(0x1bfbF13aF629eB2bC829393D10f5f4a2B84EFF70),
             Constants.SOLV_MAINNET_VAULT_PROXY_ADMIN(),
             deployer,
-            bytes32(uint256(0x1)),
+            bytes32(uint256(0x2)),
             "SOLV Vault OFT",
             "SOLV OFT"
         );

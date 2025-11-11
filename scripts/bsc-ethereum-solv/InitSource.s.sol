@@ -42,8 +42,8 @@ contract Deploy is Script {
                     targetCoreAddress: targetCoreAddress,
                     mellowOFTAdapter: mellowOFTAdapter,
                     mellowOFT: mellowOFT,
-                    name: "SOLV Vault",
-                    symbol: "SOLV",
+                    name: "Staked SOLV",
+                    symbol: "stSOLV",
                     epochDuration: EPOCH_DURATION,
                     limit: 550000000 ether, // 550000000 SOLV
                     oracleMaxAge: ORACLE_MAX_AGE,
