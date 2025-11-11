@@ -13,7 +13,7 @@ contract Deploy is Script {
         [bsc] MellowOFTAdapter SOLV 0xb51Fb298A55E2680da480cE97c08fB39B8a5570A.
         [ethereum] TargetCore SOLV 0x8545a1BaaDDdff45fBc316D80851214739189471;
         [ethereum] MellowOFT SOLV 0x7670d08147D345f19a00EdC02D2399531b6EF91D.
-        [ethereum] MultiVault SOLV 0xdFFee0Fcbf7F900483E4E01FcD5C678c6E932023; expected
+        [ethereum] MultiVault SOLV 0xdFFee0Fcbf7F900483E4E01FcD5C678c6E932023;
     */
 
     address claimer = 0x25024a3017B8da7161d8c5DCcF768F8678fB5802;
@@ -25,10 +25,10 @@ contract Deploy is Script {
         vm.startBroadcast(deployerPk);
         uint32 sourceEid = Constants.endpointId(Constants.BSC_CHAINID);
         {
-            SourceCore sourceCore = SourceCore(0x7C942105Be8Be5B3cbB7309120b0C0C16ee3e536);
-            TargetCore targetCore = TargetCore(0x927F0604c60924399EB44f54C4c333Ed1Ef21B45);
-            MellowOFTAdapter mellowOFTAdapter = MellowOFTAdapter(0xAEa7F7bF3A3b40e625b160e21473dAC1D6089DD9);
-            MellowOFT mellowOFT = MellowOFT(0x080cCaa313B0e0Bac744C090B5894d75d853518D);
+            SourceCore sourceCore = SourceCore(0x01C56d641c7dCE4F43679a807DD3b69872Ce8e3C);
+            TargetCore targetCore = TargetCore(0x8545a1BaaDDdff45fBc316D80851214739189471);
+            MellowOFTAdapter mellowOFTAdapter = MellowOFTAdapter(0xb51Fb298A55E2680da480cE97c08fB39B8a5570A);
+            MellowOFT mellowOFT = MellowOFT(0x7670d08147D345f19a00EdC02D2399531b6EF91D);
             address vault = 0xdFFee0Fcbf7F900483E4E01FcD5C678c6E932023;
             InitTarget.init(
                 InitTarget.InitParams({
