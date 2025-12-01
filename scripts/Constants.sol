@@ -231,9 +231,8 @@ library Constants {
                 dvns[0] = 0xa78A78a13074eD93aD447a26Ec57121f29E8feC2; //default DVN
                 return dvns;
             } else if (block.chainid == SEPOLIA_CHAINID) {
-                address[] memory dvns = new address[](2);
+                address[] memory dvns = new address[](1);
                 dvns[0] = 0x8eebf8b423B73bFCa51a1Db4B7354AA0bFCA9193; // LayerZero labs
-                dvns[1] = 0xCA7a736be0Fe968A33Af62033B8b36D491f7999B; // BWare
                 return dvns;
             }
         }

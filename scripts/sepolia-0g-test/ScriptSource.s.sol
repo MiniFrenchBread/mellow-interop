@@ -17,17 +17,16 @@ contract Deploy is Script {
     SourceCore public immutable sourceCore = SourceCore(0xc07510228bB180985C6009C24ED5D05fdfC82F84);
     MellowOFTAdapter public immutable sourceMellowOFTAdapter =
         MellowOFTAdapter(0xA83067d29b9671eECbDb9A3290ded33c63659b99);
-    SourceHelper public immutable helper =
-        SourceHelper(0x09c03ea586A6b4058bd39C78Ef91e492e3b2E14A);
-    Collector public immutable collector =
-        Collector(0x3E2B0eA1EE00fB826Cbb7609501310A9D083Dc2f);
+    SourceHelper public immutable helper = SourceHelper(0x09c03ea586A6b4058bd39C78Ef91e492e3b2E14A);
+    Collector public immutable collector = Collector(0x3E2B0eA1EE00fB826Cbb7609501310A9D083Dc2f);
 
     address public constant assets = 0x1Cd0690fF9a693f5EF2dD976660a8dAFc81A109c; // WOG
 
     // Collector    0x3E2B0eA1EE00fB826Cbb7609501310A9D083Dc2f
     // SourceHelper 0x09c03ea586A6b4058bd39C78Ef91e492e3b2E14A
     function run() external {
-        //makeDeposit();
+        //updateLZConfig();
+        makeDeposit();
         pushToTarget();
         //revert("ok");
     }
@@ -62,15 +61,15 @@ contract Deploy is Script {
     }
 
     function pushToTarget() internal {
-        uint256 deployerPk = uint256(bytes32(vm.envBytes("HOT_DEPLOYER"))); 
+        uint256 deployerPk = uint256(bytes32(vm.envBytes("HOT_DEPLOYER")));
         uint256 adminPk = uint256(bytes32(vm.envBytes("ADMIN_OG_TEST")));
         address deployer = vm.addr(deployerPk);
         address admin = vm.addr(adminPk);
-        uint256 fee = helper.quotePushToTarget(sourceCore); 
+        uint256 fee = helper.quotePushToTarget(sourceCore);
 
         if (!sourceCore.hasRole(sourceCore.PUSH_ROLE(), deployer)) {
             vm.startBroadcast(deployerPk);
-            admin.call{value: 0.01 ether} ("");
+            admin.call{value: 0.01 ether}("");
             vm.stopBroadcast();
 
             vm.startBroadcast(adminPk);
@@ -80,6 +79,27 @@ contract Deploy is Script {
 
         vm.startBroadcast(deployerPk);
         sourceCore.pushToTarget{value: fee}();
+        vm.stopBroadcast();
+    }
+
+    function updateLZConfig() internal {
+        MellowOFTAdapter mellowOFTAdapter = sourceMellowOFTAdapter;
+        SetConfigParam[] memory params = new SetConfigParam[](1);
+        UlnConfig memory config;
+        config.confirmations = 20;
+        config.requiredDVNs = Constants.requiredDVNs(Constants.endpointId(block.chainid));
+        config.requiredDVNCount = uint8(config.requiredDVNs.length);
+        params[0] = SetConfigParam({
+            eid: Constants.endpointId(Constants.SEPOLIA_CHAINID),
+            configType: 2,
+            config: abi.encode(config)
+        });
+        ILayerZeroEndpointV2 endpoint = ILayerZeroEndpointV2(mellowOFTAdapter.endpoint());
+        uint256 adminPk = uint256(bytes32(vm.envBytes("ADMIN_OG_TEST")));
+
+        vm.startBroadcast(adminPk);
+        endpoint.setConfig(address(mellowOFTAdapter), Constants.sendLibrary(), params);
+        endpoint.setConfig(address(mellowOFTAdapter), Constants.receiveLibrary(), params);
         vm.stopBroadcast();
     }
 }
