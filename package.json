@@ -44,6 +44,13 @@
     "deploy:helper:17000": "forge script --use 0.8.25 scripts/helpers/Deploy.s.sol:Deploy --rpc-url $(grep HOLESKY_RPC .env | cut -d '=' -f2,3,4,5) --broadcast --legacy -vvvv --verify --etherscan-api-key $(grep ETHERSCAN_API_KEY .env | cut -d '=' -f2)",
     "deploy:helper:252": "forge script --use 0.8.25 scripts/helpers/Deploy.s.sol:Deploy --rpc-url $(grep FRAX_RPC .env | cut -d '=' -f2,3,4,5) --broadcast --legacy -vvvv --verify --etherscan-api-key $(grep ETHERSCAN_API_KEY .env | cut -d '=' -f2)",
     "deploy:helper:1": "forge script --use 0.8.25 scripts/helpers/Deploy.s.sol:Deploy --rpc-url $(grep MAINNET_RPC .env | cut -d '=' -f2,3,4,5) --broadcast --slow  -vvvv --verify --etherscan-api-key $(grep ETHERSCAN_API_KEY .env | cut -d '=' -f2)",
+
+    "deploy:source:16602": "forge script --use 0.8.25 scripts/sepolia-0g-test/DeploySource.s.sol:Deploy --rpc-url $(grep GALILEO_RPC .env | cut -d '=' -f2,3,4,5) --broadcast --slow  -vvvv --verify",
+    "deploy:target:16602": "forge script --use 0.8.25 scripts/sepolia-0g-test/DeployTarget.s.sol:Deploy --rpc-url $(grep SEPOLIA_RPC .env | cut -d '=' -f2,3,4,5) --broadcast --slow  -vvvv --verify --etherscan-api-key $(grep ETHERSCAN_API_KEY .env | cut -d '=' -f2)",
+    "init:source:16602-11155111": "forge script --use 0.8.25 scripts/sepolia-0g-test/InitSource.s.sol:Deploy --rpc-url $(grep GALILEO_RPC .env | cut -d '=' -f2,3,4,5) --broadcast --slow  -vvvv --verify",
+    "init:target:16602-11155111": "forge script --use 0.8.25 scripts/sepolia-0g-test/InitTarget.s.sol:Deploy --rpc-url $(grep SEPOLIA_RPC .env | cut -d '=' -f2,3,4,5) --broadcast --slow  -vvvv --verify --etherscan-api-key $(grep ETHERSCAN_API_KEY .env | cut -d '=' -f2)",
+    "script:source:16602-11155111": "forge script --use 0.8.25 scripts/sepolia-0g-test/ScriptSource.s.sol:Deploy --rpc-url $(grep GALILEO_RPC .env | cut -d '=' -f2,3,4,5) --broadcast --slow  -vvvv --verify",
+    
     "coverage:report": "forge coverage --ir-minimum -vvv --fork-url $(grep MAINNET_RPC .env | cut -d '=' -f2,3,4,5) --fork-block-number 21900000 --report lcov && genhtml lcov.info -o report --branch-coverage && rm lcov.info",
     "sizes": "forge build --sizes --force",
     "scc:report": "scc src --sort names --no-cocomo --exclude-dir interfaces --by-file --format wide > scc-report.txt"

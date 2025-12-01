@@ -33,6 +33,7 @@ library Constants {
     uint256 public constant BSC_TESTNET_CHAINID = 97;
     uint256 public constant BSC_CHAINID = 56;
     uint256 public constant MANTA_CHAINID = 169;
+    uint256 public constant GALILEO_CHAINID = 16602;
 
     function endpointId(uint256 chainId) internal pure returns (uint32) {
         if (chainId == HOLESKY_CHAINID) {
@@ -55,6 +56,8 @@ library Constants {
             return 30102;
         } else if (chainId == MANTA_CHAINID) {
             return 30217;
+        } else if (chainId == GALILEO_CHAINID) {
+            return 40428;
         }
         revert("Unsupported chain");
     }
@@ -84,6 +87,8 @@ library Constants {
             return 0x1a44076050125825900e736c501f859c50fE728c;
         } else if (chainId == MANTA_CHAINID) {
             return 0x1a44076050125825900e736c501f859c50fE728c;
+        } else if (chainId == GALILEO_CHAINID) {
+            return 0x3aCAAf60502791D199a5a5F0B173D78229eBFe32;
         }
         revert("Unsupported chain");
     }
@@ -113,6 +118,8 @@ library Constants {
             return 0x9F8C645f2D0b2159767Bd6E0839DE4BE49e823DE;
         } else if (chainId == MANTA_CHAINID) {
             return 0xD1654C656455E40E2905E96b6B91088AC2B362a2;
+        } else if (chainId == GALILEO_CHAINID) {
+            return 0x45841dd1ca50265Da7614fC43A361e526c0e6160;
         }
         revert("Unsupported chain");
     }
@@ -142,6 +149,8 @@ library Constants {
             return 0xB217266c3A98C8B2709Ee26836C98cf12f6cCEC1;
         } else if (chainId == MANTA_CHAINID) {
             return 0xC1EC25A9e8a8DE5Aa346f635B33e5B74c4c081aF;
+        } else if (chainId == GALILEO_CHAINID) {
+            return 0xd682ECF100f6F4284138AA925348633B0611Ae21;
         }
         revert("Unsupported chain");
     }
@@ -216,6 +225,17 @@ library Constants {
                 dvns[1] = 0x589dEDbD617e0CBcB916A9223F4d1300c294236b; // LayerZero labs
                 return dvns;
             }
+        } else if (sourceEndpointId == endpointId(GALILEO_CHAINID)) {
+            if (block.chainid == GALILEO_CHAINID) {
+                address[] memory dvns = new address[](1);
+                dvns[0] = 0xa78A78a13074eD93aD447a26Ec57121f29E8feC2; //default DVN
+                return dvns;
+            } else if (block.chainid == SEPOLIA_CHAINID) {
+                address[] memory dvns = new address[](2);
+                dvns[0] = 0x8eebf8b423B73bFCa51a1Db4B7354AA0bFCA9193; // LayerZero labs
+                dvns[1] = 0xCA7a736be0Fe968A33Af62033B8b36D491f7999B; // BWare
+                return dvns;
+            }
         }
         revert("Unsupported chain");
     }
@@ -284,6 +304,13 @@ library Constants {
     function solv() internal view returns (address) {
         if (block.chainid == BSC_CHAINID) {
             return 0xabE8E5CabE24Cb36df9540088fD7cE1175b9bc52;
+        }
+        revert("Unsupported chain");
+    }
+
+    function wog() internal view returns (address) {
+        if (block.chainid == GALILEO_CHAINID) {
+            return 0x1Cd0690fF9a693f5EF2dD976660a8dAFc81A109c;
         }
         revert("Unsupported chain");
     }
@@ -426,6 +453,23 @@ library Constants {
 
     function SOLV_MAINNET_VAULT_PROXY_ADMIN() internal pure returns (address) {
         return 0x7377344FCD33844541cb6966ffa7FcAB05641183; // both bsc+mainnet
+    }
+
+    // 0x3622B8C85C9a4A2ecda005349045FB80912D38f7
+    function OG_MAINNET_CURATOR_OPERATOR() internal pure returns (address) {
+        return 0x3622B8C85C9a4A2ecda005349045FB80912D38f7; // curator operator galileo+sepolia
+    }
+
+    function OG_MAINNET_CURATOR() internal pure returns (address) {
+        return 0x3622B8C85C9a4A2ecda005349045FB80912D38f7; // curator admin galileo+sepolia
+    }
+
+    function OG_MAINNET_VAULT_ADMIN() internal pure returns (address) {
+        return 0x3622B8C85C9a4A2ecda005349045FB80912D38f7; // both galileo+sepolia
+    }
+
+    function OG_MAINNET_VAULT_PROXY_ADMIN() internal pure returns (address) {
+        return 0x3622B8C85C9a4A2ecda005349045FB80912D38f7; // both galileo+sepolia
     }
 
     function sendGas() internal pure returns (uint128) {
