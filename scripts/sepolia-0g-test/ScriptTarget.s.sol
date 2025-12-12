@@ -9,9 +9,10 @@ contract Deploy is Script {
     using OptionsBuilder for bytes;
 
     MellowOFT public mellowOFT = MellowOFT(0x4fed2B4d6c797f22026283a7a10A14B86Bd0636C);
+    TargetCore public targetCore = TargetCore(0xD48b09Fc5fB2c3C8a24DD67e90542a8f443BA21b);
     function run() external {
-        updateLZConfig();
-        //revert("ok" );
+        grantRoles(0x7A58D9a1CB44c05a240C18DFf1f1D17DE42f1954);
+       // revert("ok" );
         return;
         uint256 deployerPk = uint256(bytes32(vm.envBytes("HOT_DEPLOYER")));
         vm.startBroadcast(deployerPk);
@@ -46,6 +47,16 @@ contract Deploy is Script {
         vm.startBroadcast(adminPk);
         endpoint.setConfig(address(mellowOFT), Constants.sendLibrary(), params);
         endpoint.setConfig(address(mellowOFT), Constants.receiveLibrary(), params);
+        vm.stopBroadcast();
+    }
+
+    function grantRoles(address grantee) internal {
+        uint256 adminPk = uint256(bytes32(vm.envBytes("ADMIN_OG_TEST")));
+        vm.startBroadcast(adminPk);
+        targetCore.grantRole(targetCore.DEPOSIT_ROLE(), grantee);
+        targetCore.grantRole(targetCore.REDEEM_ROLE(), grantee);
+        targetCore.grantRole(targetCore.CLAIM_ROLE(), grantee);
+        targetCore.grantRole(targetCore.PUSH_ROLE(), grantee);
         vm.stopBroadcast();
     }
 }

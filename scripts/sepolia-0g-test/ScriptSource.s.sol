@@ -21,10 +21,17 @@ contract Deploy is Script {
     Collector public immutable collector = Collector(0x3E2B0eA1EE00fB826Cbb7609501310A9D083Dc2f);
 
     address public constant assets = 0x1Cd0690fF9a693f5EF2dD976660a8dAFc81A109c; // WOG
+    address public constant pushCurator = 0x7A58D9a1CB44c05a240C18DFf1f1D17DE42f1954;
 
     // Collector    0x3E2B0eA1EE00fB826Cbb7609501310A9D083Dc2f
     // SourceHelper 0x09c03ea586A6b4058bd39C78Ef91e492e3b2E14A
     function run() external {
+        uint256 adminPk = uint256(bytes32(vm.envBytes("ADMIN_OG_TEST")));
+        vm.startBroadcast(adminPk);
+        IWithdrawalQueue withdrawalQueue = sourceCore.withdrawalQueue();
+        withdrawalQueue.setWithdrawalDelay(5 minutes);
+        //revert("ok");
+        return;
         //updateLZConfig();
         makeDeposit();
         pushToTarget();
@@ -57,6 +64,13 @@ contract Deploy is Script {
         IERC20(asset).approve(address(sourceCore), amount);
         sourceCore.deposit(amount, deployer);
 
+        vm.stopBroadcast();
+    }
+
+    function grantPushRole(address grantee) internal {
+        uint256 adminPk = uint256(bytes32(vm.envBytes("ADMIN_OG_TEST")));
+        vm.startBroadcast(adminPk);
+        sourceCore.grantRole(sourceCore.PUSH_ROLE(), grantee);
         vm.stopBroadcast();
     }
 
