@@ -35,11 +35,11 @@ contract Deploy is Script {
             InitSource.init(
                 InitSource.InitParams({
                     deployer: deployer,
-                    vaultAdmin: Constants.OG_MAINNET_VAULT_ADMIN(),
-                    vaultProxyAdmin: Constants.OG_MAINNET_VAULT_PROXY_ADMIN(),
-                    oracleUpdater: Constants.OG_MAINNET_VAULT_ADMIN(),
-                    curatorAdmin: Constants.OG_MAINNET_CURATOR(),
-                    curatorOperator: Constants.OG_MAINNET_CURATOR_OPERATOR(),
+                    vaultAdmin: Constants.OG_SEPOLIA_VAULT_ADMIN(),
+                    vaultProxyAdmin: Constants.OG_SEPOLIA_VAULT_PROXY_ADMIN(),
+                    oracleUpdater: Constants.OG_SEPOLIA_VAULT_ADMIN(),
+                    curatorAdmin: Constants.OG_SEPOLIA_CURATOR(),
+                    curatorOperator: Constants.OG_SEPOLIA_CURATOR_OPERATOR(),
                     sourceCore: SourceCore(coreDeployment.SourceCore),
                     targetEid: Constants.endpointId(coreDeployment.targetChainId),
                     targetCoreAddress: coreDeployment.TargetCore,

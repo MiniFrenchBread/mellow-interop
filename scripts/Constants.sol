@@ -34,6 +34,7 @@ library Constants {
     uint256 public constant BSC_CHAINID = 56;
     uint256 public constant MANTA_CHAINID = 169;
     uint256 public constant GALILEO_CHAINID = 16602;
+    uint256 public constant OG_CHAINID = 16661;
 
     function endpointId(uint256 chainId) internal pure returns (uint32) {
         if (chainId == HOLESKY_CHAINID) {
@@ -58,6 +59,8 @@ library Constants {
             return 30217;
         } else if (chainId == GALILEO_CHAINID) {
             return 40428;
+        } else if (chainId == OG_CHAINID) {
+            return 30388;
         }
         revert("Unsupported chain");
     }
@@ -89,6 +92,8 @@ library Constants {
             return 0x1a44076050125825900e736c501f859c50fE728c;
         } else if (chainId == GALILEO_CHAINID) {
             return 0x3aCAAf60502791D199a5a5F0B173D78229eBFe32;
+        } else if (chainId == OG_CHAINID) {
+            return 0xcb566e3B6934Fa77258d68ea18E931fa75e1aaAa;
         }
         revert("Unsupported chain");
     }
@@ -120,6 +125,8 @@ library Constants {
             return 0xD1654C656455E40E2905E96b6B91088AC2B362a2;
         } else if (chainId == GALILEO_CHAINID) {
             return 0x45841dd1ca50265Da7614fC43A361e526c0e6160;
+        } else if (chainId == OG_CHAINID) {
+            return 0xe1844c5D63a9543023008D332Bd3d2e6f1FE1043;
         }
         revert("Unsupported chain");
     }
@@ -151,6 +158,8 @@ library Constants {
             return 0xC1EC25A9e8a8DE5Aa346f635B33e5B74c4c081aF;
         } else if (chainId == GALILEO_CHAINID) {
             return 0xd682ECF100f6F4284138AA925348633B0611Ae21;
+        } else if (chainId == OG_CHAINID) {
+            return 0x2367325334447C5E1E0f1b3a6fB947b262F58312;
         }
         revert("Unsupported chain");
     }
@@ -235,6 +244,18 @@ library Constants {
                 dvns[0] = 0x8eebf8b423B73bFCa51a1Db4B7354AA0bFCA9193; // LayerZero labs
                 return dvns;
             }
+        } else if (sourceEndpointId == endpointId(OG_CHAINID)) {
+            if (block.chainid == OG_CHAINID) {
+                address[] memory dvns = new address[](2);
+                dvns[0] = 0x95729Ea44326f8adD8A9b1d987279DBdC1DD3dFf; // Nethermind
+                dvns[1] = 0x6788f52439ACA6BFF597d3eeC2DC9a44B8FEE842; // LayerZero labs
+                return dvns;
+            } else if (block.chainid == ETHEREUM_CHAINID) {
+                address[] memory dvns = new address[](2);
+                dvns[0] = 0x380275805876Ff19055EA900CDb2B46a94ecF20D; // Horizen
+                dvns[1] = 0x589dEDbD617e0CBcB916A9223F4d1300c294236b; // LayerZero labs
+                return dvns;
+            }
         }
         revert("Unsupported chain");
     }
@@ -309,6 +330,8 @@ library Constants {
 
     function wog() internal view returns (address) {
         if (block.chainid == GALILEO_CHAINID) {
+            return 0x1Cd0690fF9a693f5EF2dD976660a8dAFc81A109c;
+        } else if (block.chainid == OG_CHAINID) {
             return 0x1Cd0690fF9a693f5EF2dD976660a8dAFc81A109c;
         }
         revert("Unsupported chain");
@@ -454,21 +477,38 @@ library Constants {
         return 0x7377344FCD33844541cb6966ffa7FcAB05641183; // both bsc+mainnet
     }
 
-    // 0x3622B8C85C9a4A2ecda005349045FB80912D38f7
-    function OG_MAINNET_CURATOR_OPERATOR() internal pure returns (address) {
+    // testnets galileo+sepolia
+    function OG_SEPOLIA_CURATOR_OPERATOR() internal pure returns (address) {
         return 0x3622B8C85C9a4A2ecda005349045FB80912D38f7; // curator operator galileo+sepolia
     }
 
-    function OG_MAINNET_CURATOR() internal pure returns (address) {
+    function OG_SEPOLIA_CURATOR() internal pure returns (address) {
         return 0x3622B8C85C9a4A2ecda005349045FB80912D38f7; // curator admin galileo+sepolia
     }
 
-    function OG_MAINNET_VAULT_ADMIN() internal pure returns (address) {
+    function OG_SEPOLIA_VAULT_ADMIN() internal pure returns (address) {
         return 0x3622B8C85C9a4A2ecda005349045FB80912D38f7; // both galileo+sepolia
     }
 
-    function OG_MAINNET_VAULT_PROXY_ADMIN() internal pure returns (address) {
+    function OG_SEPOLIA_VAULT_PROXY_ADMIN() internal pure returns (address) {
         return 0x3622B8C85C9a4A2ecda005349045FB80912D38f7; // both galileo+sepolia
+    }
+
+    // mainnets 0g+mainnet
+    function OG_MAINNET_CURATOR_OPERATOR() internal pure returns (address) {
+        return 0x3622B8C85C9a4A2ecda005349045FB80912D38f7; // curator operator 0g+mainnet
+    }
+
+    function OG_MAINNET_CURATOR() internal pure returns (address) {
+        return 0x3622B8C85C9a4A2ecda005349045FB80912D38f7; // curator admin 0g+mainnet
+    }
+
+    function OG_MAINNET_VAULT_ADMIN() internal pure returns (address) {
+        return 0x3622B8C85C9a4A2ecda005349045FB80912D38f7; // both 0g+mainnet
+    }
+
+    function OG_MAINNET_VAULT_PROXY_ADMIN() internal pure returns (address) {
+        return 0x3622B8C85C9a4A2ecda005349045FB80912D38f7; // both 0g+mainnet
     }
 
     function sendGas() internal pure returns (uint128) {

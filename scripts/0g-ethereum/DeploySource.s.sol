@@ -3,6 +3,7 @@
 pragma solidity 0.8.25;
 
 import "../common/DeploySource.sol";
+import "./Params.sol";
 import "forge-std/Script.sol";
 
 contract Deploy is Script {
@@ -11,8 +12,8 @@ contract Deploy is Script {
         address deployer = vm.addr(deployerPk);
 
         vm.startBroadcast(deployerPk);
-        (SourceCore sourceCoreSingleton, TransparentUpgradeableProxy sourceCore, MellowOFTAdapter mellowOFTAdapter) =
-        DeploySource.deploy(Constants.wog(), Constants.OG_SEPOLIA_VAULT_PROXY_ADMIN(), deployer, bytes32(uint256(0x0)));
+        (TransparentUpgradeableProxy sourceCore, MellowOFTAdapter mellowOFTAdapter) =
+            DeploySource.deploy(Params.sourceCoreImpl, Params.asset, Params.proxyAdmin, deployer, bytes32(uint256(0x0)));
         vm.stopBroadcast();
 
         console2.log("SourceCore impl %s;", address(sourceCoreSingleton));
