@@ -19,6 +19,7 @@ contract Deploy is Script {
         MellowOFTAdapter(0xA83067d29b9671eECbDb9A3290ded33c63659b99);
     SourceHelper public immutable helper = SourceHelper(0x09c03ea586A6b4058bd39C78Ef91e492e3b2E14A);
     Collector public immutable collector = Collector(0x3E2B0eA1EE00fB826Cbb7609501310A9D083Dc2f);
+    Oracle public constant sourceOracle = Oracle(0x9d2390Ab9c35C270d5e3EEFD91Ce5D51a3f27c17);
 
     address public constant assets = 0x1Cd0690fF9a693f5EF2dD976660a8dAFc81A109c; // WOG
     address public constant pushCurator = 0x7A58D9a1CB44c05a240C18DFf1f1D17DE42f1954;
@@ -26,12 +27,14 @@ contract Deploy is Script {
     // Collector    0x3E2B0eA1EE00fB826Cbb7609501310A9D083Dc2f
     // SourceHelper 0x09c03ea586A6b4058bd39C78Ef91e492e3b2E14A
     function run() external {
+        grantOracleRole(0x4786daAD7C694712AF390935C86f89e16b171C5f);
+        return;
         uint256 adminPk = uint256(bytes32(vm.envBytes("ADMIN_OG_TEST")));
         vm.startBroadcast(adminPk);
+
         IWithdrawalQueue withdrawalQueue = sourceCore.withdrawalQueue();
         withdrawalQueue.setWithdrawalDelay(5 minutes);
         //revert("ok");
-        return;
         //updateLZConfig();
         makeDeposit();
         pushToTarget();
@@ -71,6 +74,14 @@ contract Deploy is Script {
         uint256 adminPk = uint256(bytes32(vm.envBytes("ADMIN_OG_TEST")));
         vm.startBroadcast(adminPk);
         sourceCore.grantRole(sourceCore.PUSH_ROLE(), grantee);
+        vm.stopBroadcast();
+    }
+
+    function grantOracleRole(address grantee) internal {
+        uint256 adminPk = uint256(bytes32(vm.envBytes("ADMIN_OG_TEST")));
+        vm.startBroadcast(adminPk);
+        sourceCore.grantRole(sourceOracle.SET_MAX_AGE_ROLE(), grantee);
+        sourceCore.grantRole(sourceOracle.SET_VALUE_ROLE(), grantee);
         vm.stopBroadcast();
     }
 
