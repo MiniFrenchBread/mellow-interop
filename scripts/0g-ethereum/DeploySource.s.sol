@@ -12,14 +12,15 @@ contract Deploy is Script {
         address deployer = vm.addr(deployerPk);
 
         vm.startBroadcast(deployerPk);
-        (TransparentUpgradeableProxy sourceCore, MellowOFTAdapter mellowOFTAdapter) =
-            DeploySource.deploy(Params.sourceCoreImpl, Params.asset, Params.proxyAdmin, deployer, bytes32(uint256(0x0)));
+        (TransparentUpgradeableProxy sourceCore, MellowOFTAdapter mellowOFTAdapter) = DeploySource.deploy(
+            SourceCore(Params.sourceCoreImpl), Params.asset, Params.proxyAdmin, deployer, bytes32(uint256(0x3))
+        );
         vm.stopBroadcast();
 
-        console2.log("SourceCore impl %s;", address(sourceCoreSingleton));
-        console2.log("SourceCore WOG %s;", address(sourceCore));
-        console2.log("MellowOFTAdapter WOG %s.", address(mellowOFTAdapter));
+        console2.log("SourceCore impl %s", Params.sourceCoreImpl);
+        console2.log("SourceCore %s/%s %s", Params.vaultName, Params.vaultSymbol, address(sourceCore));
+        console2.log("MellowOFTAdapter %s", address(mellowOFTAdapter));
 
-        // revert("ok");
+        //revert("ok");
     }
 }

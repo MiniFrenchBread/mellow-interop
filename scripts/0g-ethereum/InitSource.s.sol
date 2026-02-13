@@ -11,10 +11,13 @@ contract Deploy is Script {
         uint256 deployerPk = uint256(bytes32(vm.envBytes("HOT_DEPLOYER")));
         address deployer = vm.addr(deployerPk);
 
-        assertTrue(Params.sourceCore != address(0), "SourceCore address is not set");
-        assertTrue(Params.targetCore != address(0), "TargetCore address is not set");
-        assertTrue(Params.mellowOFTAdapter != address(0), "MellowOFTAdapter address is not set");
-        assertTrue(Params.mellowOFT != address(0), "MellowOFT address is not set");
+        require(Params.sourceCore != address(0), "SourceCore address is not set");
+        require(Params.targetCore != address(0), "TargetCore address is not set");
+        require(Params.mellowOFTAdapter != address(0), "MellowOFTAdapter address is not set");
+        require(Params.mellowOFT != address(0), "MellowOFT address is not set");
+
+        uint32 targetEid = Constants.endpointId(Params.targetChainId);
+        console2.log("Target endpoint ID %s", targetEid);
 
         vm.startBroadcast(deployerPk);
         {
@@ -22,12 +25,12 @@ contract Deploy is Script {
                 InitSource.InitParams({
                     deployer: deployer,
                     vaultAdmin: Params.vaultAdmin,
-                    vaultProxyAdmin: Params.vaultProxyAdmin,
+                    vaultProxyAdmin: Params.proxyAdmin,
                     oracleUpdater: Params.vaultAdmin,
                     curatorAdmin: Params.curator,
                     curatorOperator: Params.operator,
                     sourceCore: SourceCore(Params.sourceCore),
-                    targetEid: Constants.endpointId(Params.targetChainId),
+                    targetEid: targetEid,
                     targetCoreAddress: Params.targetCore,
                     mellowOFTAdapter: MellowOFTAdapter(Params.mellowOFTAdapter),
                     mellowOFT: MellowOFT(Params.mellowOFT),
@@ -41,6 +44,6 @@ contract Deploy is Script {
             );
         }
         vm.stopBroadcast();
-        // revert("ok");
+        //revert("ok");
     }
 }

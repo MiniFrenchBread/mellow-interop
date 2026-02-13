@@ -247,8 +247,8 @@ library Constants {
         } else if (sourceEndpointId == endpointId(OG_CHAINID)) {
             if (block.chainid == OG_CHAINID) {
                 address[] memory dvns = new address[](2);
-                dvns[0] = 0x95729Ea44326f8adD8A9b1d987279DBdC1DD3dFf; // Nethermind
-                dvns[1] = 0x6788f52439ACA6BFF597d3eeC2DC9a44B8FEE842; // LayerZero labs
+                dvns[0] = 0x6788f52439ACA6BFF597d3eeC2DC9a44B8FEE842; // LayerZero labs
+                dvns[1] = 0x95729Ea44326f8adD8A9b1d987279DBdC1DD3dFf; // Nethermind
                 return dvns;
             } else if (block.chainid == ETHEREUM_CHAINID) {
                 address[] memory dvns = new address[](2);
