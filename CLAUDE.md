@@ -6,7 +6,9 @@ Mellow Interop is a Solidity smart contract system for **cross-chain restaking v
 
 The source-chain vault is an ERC-4626 tokenized vault; users deposit an underlying asset and receive vault shares. An operator bot periodically bridges deposited assets to the target chain and deposits them into Mellow MultiVaults (which in turn restake into EigenLayer / Symbiotic). Withdrawals follow an epoch-based queue with a configurable delay to allow the operator time to unwind target-chain positions.
 
-Built by Mellow Finance. Solidity 0.8.25, Foundry toolchain, Cancun EVM target.
+Built by Mellow Finance. Solidity 0.8.25, Foundry toolchain, Shanghai EVM target -- the live
+0G mainnet implementations were compiled with it, and a Cancun build cannot reproduce their
+bytecode.
 
 ## Architecture
 
@@ -127,7 +129,7 @@ src/
 scripts/
   Constants.sol            -- Chain IDs, LZ endpoints, DVN addresses, token addresses
   common/                  -- Reusable deploy/init libraries
-  0g-ethereum/             -- 0G mainnet <-> Ethereum mainnet deployment (W0G / aOG)
+  0g-ethereum/             -- 0G mainnet <-> Ethereum mainnet deployment (W0G / a0G)
   sepolia-0g-test/         -- 0G Galileo testnet <-> Sepolia testnet deployment
   frax-ethereum/           -- Fraxtal <-> Ethereum (FRAX / rstFRAX)
   bsc-ethereum/            -- BSC <-> Ethereum (CYC)
@@ -154,7 +156,7 @@ lib/                       -- Git submodule dependencies
   solidity-bytes-utils/
 
 audits/                    -- Security audit reports (Decurity, Nethermind, March 2025)
-foundry.toml               -- Foundry config (Cancun EVM, optimizer 200 runs)
+foundry.toml               -- Foundry config (Shanghai EVM, optimizer 200 runs)
 package.json               -- npm scripts for build/test/deploy
 remappings.txt             -- Solidity import remappings
 ```
@@ -163,7 +165,8 @@ remappings.txt             -- Solidity import remappings
 
 **0G Mainnet (chain 16661) <-> Ethereum Mainnet:**
 - Asset: W0G (Wrapped 0G token) at `0x1Cd0690fF9a693f5EF2dD976660a8dAFc81A109c`
-- SourceCore (aOG / Ascend Staked OG): `0x4B3c2f55fa67679b382c979A082Df1B32079B4cB`
+- SourceCore (a0G / Ascend Staked 0G): `0x4B3c2f55fa67679b382c979A082Df1B32079B4cB`
+  - implementation: `0x5F5E90Eda845c948dF101A1263e17aF2d2bdf292`
 - TargetCore: `0xd46E464c82643e6937838A94d40FD8D014A2EA26`
 - MellowOFTAdapter: `0x28eCbDbf7AA257A42D786409c7a27B9CE92aA1fF`
 - MellowOFT (0G OFT): `0xE42215BD71E190b3864267569c2f66077260EaE4`
