@@ -3,6 +3,8 @@ pragma solidity 0.8.25;
 
 import "../interfaces/core/ISourceCore.sol";
 import "./SourceCoreStorage.sol";
+import {ERC20Upgradeable, IERC20Metadata} from
+    "@openzeppelin/contracts-upgradeable/token/ERC20/ERC20Upgradeable.sol";
 
 contract SourceCore is ISourceCore, SourceCoreStorage {
     using SafeERC20 for IERC20;
@@ -17,6 +19,21 @@ contract SourceCore is ISourceCore, SourceCoreStorage {
     modifier handleEpoch() {
         withdrawalQueue().handleEpoch();
         _;
+    }
+
+    /// @inheritdoc IERC20Metadata
+    /// @dev Returned as a constant rather than from storage. The stored strings spell the network
+    ///      with a capital letter O ("Ascend Staked OG" / "aOG") where it is a digit zero, and the
+    ///      initializer that wrote them can only ever run once. Overriding the getters corrects the
+    ///      name without writing a single slot, so an upgrade cannot disturb balances, allowances,
+    ///      or the ERC-7201 layout. The stale stored strings stay behind, unread by anything.
+    function name() public pure override(ERC20Upgradeable, IERC20Metadata) returns (string memory) {
+        return "Ascend Staked 0G";
+    }
+
+    /// @inheritdoc IERC20Metadata
+    function symbol() public pure override(ERC20Upgradeable, IERC20Metadata) returns (string memory) {
+        return "a0G";
     }
 
     /// @inheritdoc IERC4626
